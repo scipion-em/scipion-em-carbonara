@@ -1,5 +1,5 @@
 =======================
-Carbonara scipion plugin
+CARBonAra Scipion plugin
 =======================
 
 This plugin allows to use run **CARBonAra** commands within the **Scipion** framework.
