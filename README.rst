@@ -4,7 +4,7 @@ Carbonara scipion plugin
 
 This plugin allows to use run **CARBonAra** commands within the **Scipion** framework.
 
-CARBonAra is a deep learning framework that facilitates protein sequence design by leveraging atomic coordinates, allowing for context-aware sequence generation. This method is particularly useful for integrating protein design with molecular environments, including non-protein entities, providing more control to protein engineering (See `https://github.com/LBM-EPFL/CARBonAra/>`_  for details)
+CARBonAra is a deep learning framework that facilitates protein sequence design by leveraging atomic coordinates, allowing for context-aware sequence generation. This method is particularly useful for integrating protein design with molecular environments, including non-protein entities, providing more control to protein engineering (See `<https://github.com/LBM-EPFL/CARBonAra/>`_  for details)
 
 Features:
 
