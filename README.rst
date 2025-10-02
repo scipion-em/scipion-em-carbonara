@@ -37,6 +37,22 @@ OR through the plugin manager GUI by launching Scipion and following **Configura
       cd scipion-em-carbonara
     
       scipion3 installp -p path_to_scipion-em-carbonara --devel
+
+==========================
+Configuration variables
+==========================
+
+There are some variables related to the CARBonAra installation. If you have installed
+CARBonAra within Scipion, you may define `CARBONARA_ENV_ACTIVATION` for specifying
+how to activate the environment. This variable with be used together with the general
+conda activation to generate the final carbonara command. For example:
+
+.. code-block::
+
+    CARBONARA_ENV_ACTIVATION = conda activate carbonara
+
+If this variable is not defined, a default value will be provided that will work if the
+latest version is installed.
     
 - **Binary files**
 
