@@ -1,0 +1,1 @@
+02-October-2025 - First commit; Preparing plugin for release
