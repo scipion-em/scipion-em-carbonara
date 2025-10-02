@@ -43,8 +43,7 @@ OR
 
 .. code-block::
 
-    git clone https://github.com/scipion-em/scipion-em-carbonara.git scipion-em-carbonara
-
+    git clone git@github.com:scipion-em/scipion-em-carbonara.git
 2. Install:
 
 .. code-block::
