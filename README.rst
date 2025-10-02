@@ -4,16 +4,14 @@ Carbonara scipion plugin
 
 This plugin allows to use run **CARBonAra** commands within the **Scipion** framework.
 
-CARBonAra is a deep learning framework that facilitates protein sequence design by leveraging atomic coordinates, allowing for context-aware sequence generation. This method is particularly useful for integrating protein design with molecular environments, including non-protein entities, providing more control to protein engineering (See `<https://github.com/LBM-EPFL/CARBonAra/>`_  for details)
+CARBonAra allows protein sequence designing based on structure atomic coordinates. Since this method takes into account the context in sequence generation, it is particularly helpful to design proteins embedded in molecular environments that include non-protein entities such as nucleic acids (See `<https://github.com/LBM-EPFL/CARBonAra/>`_  for details and features).
 
-Features:
+==========================
+Download the repository
+==========================
+.. code-block::
 
-Geometric Transformer: The framework uses a geometric transformer model based only on atomic coordinates and atomic elements, allowing it to handle any protein backbone scaffolds and various molecular environments.
-    
-Context Awareness: CARBonAra's design accounts for molecular environments, including non-protein entities, providing context-aware sequence generation.
-    
-Imprint Sequence Sampling: CARBonAra's imprint sampling method provides diverse sequences, balancing design flexibility with high-confidence predictions.
-
+    git clone git@github.com:scipion-em/scipion-em-carbonara.git
 
 ==========================
 Install this plugin
@@ -31,26 +29,14 @@ Instructions to install this plugin (2 options):
       cd scipion-em-carbonara
       rm -rf .git
       git init
-    
       
-OR
-
-  - through the plugin manager GUI by launching Scipion and following **Configuration** >> **Plugins**
+      OR through the plugin manager GUI by launching Scipion and following **Configuration** >> **Plugins**
       
 - **Developer's version**
 
-1. Download repository:
-
-.. code-block::
-
-    git clone git@github.com:scipion-em/scipion-em-carbonara.git
-2. Install:
-
-.. code-block::
-
-    cd scipion-em-carbonara
+      cd scipion-em-carbonara
     
-    scipion3 installp -p path_to_scipion-em-carbonara --devel
+      scipion3 installp -p path_to_scipion-em-carbonara --devel
     
 - **Binary files**
 
