@@ -21,7 +21,6 @@ You will need to use `3.0.0 <https://scipion-em.github.io/docs/release-3.0.0/>`_
 Instructions to install this plugin (2 options):
 
 - **Stable version**  
-
 .. code-block:: 
 
       scipion3 installp -p scipion-em-carbonara
@@ -30,9 +29,10 @@ Instructions to install this plugin (2 options):
       rm -rf .git
       git init
       
-      OR through the plugin manager GUI by launching Scipion and following **Configuration** >> **Plugins**
+OR through the plugin manager GUI by launching Scipion and following **Configuration** >> **Plugins**
       
 - **Developer's version**
+.. code-block:: 
 
       cd scipion-em-carbonara
     
