@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -27,7 +27,7 @@ Homepage = "https://github.com/scipion-em/scipion-em-carbonara"
 Issues = "https://github.com/scipion-em/scipion-em-carbonara/issues"
 
 [tool.setuptools.dynamic]
-version = {attr = "template.__version__"}
+version = {attr = "carbonara.__version__"}
 dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools.package-data]
