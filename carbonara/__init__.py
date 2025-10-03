@@ -31,14 +31,14 @@ from pyworkflow import Config
 
 from .constants import *
 
-__version__ = v1
-_logo = "logo.png"
+__version__ = V1
+_logo = "icon.png"
 _references = ['Krapp2024']
 
 
 class Plugin(pwem.Plugin):
     _url = "https://github.com/scipion-em/scipion-em-carbonara"
-    _supportedVersions = v1  # binary version
+    _supportedVersions = V1  # binary version
 
     @classmethod
     def _defineVariables(cls):
@@ -78,13 +78,13 @@ class Plugin(pwem.Plugin):
             cls.addCARBonAraPackage(env, version=version)
             
     @classmethod
-    def addCARBonAraPackage(env, version=version)
+    def addCARBonAraPackage(env, version=None):
     	# try to get CONDA activation command
         installCmds = [
             cls.getCondaActivationCmd(),
             f'conda create -n carbonara',
             f'conda activate carbonara',
-            f'pip install -e . &&'
+            f'pip install . &&'
         ]
     
         url = "https://github.com/LBM-EPFL/CARBonAra"
@@ -94,7 +94,7 @@ class Plugin(pwem.Plugin):
             f'cd CARBonAra;'
         ]
         gitCmds.extend(installCmds)
-        cryodrgnCmds = [(" ".join(gitCmds)]
+        # cryodrgnCmds = [(" ".join(gitCmds)]
         env.addPackage('carbonara', version=V1,
                        tar='void.tgz',
                        commands=installCmds,
