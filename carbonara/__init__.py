@@ -84,7 +84,7 @@ class Plugin(pwem.Plugin):
             cls.getCondaActivationCmd(),
             f'conda create -n carbonara',
             f'conda activate carbonara',
-            f'pip install -e . &&'
+            f'pip install . &&'
         ]
     
         url = "https://github.com/LBM-EPFL/CARBonAra"
