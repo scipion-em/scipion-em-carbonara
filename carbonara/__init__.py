@@ -31,7 +31,7 @@ from pyworkflow import Config
 
 from .constants import *
 
-__version__ = v1
+__version__ = '0.0.1'
 _logo = "logo.png"
 _references = ['Krapp2024']
 
@@ -75,10 +75,10 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def defineBinaries(cls, env):
-            cls.addCARBonAraPackage(env, version=version)
+            cls.addCARBonAraPackage(env, version=__version__)
             
     @classmethod
-    def addCARBonAraPackage(env, version=version)
+    def addCARBonAraPackage(env, version=__version__):
     	# try to get CONDA activation command
         installCmds = [
             cls.getCondaActivationCmd(),
@@ -94,10 +94,10 @@ class Plugin(pwem.Plugin):
             f'cd CARBonAra;'
         ]
         gitCmds.extend(installCmds)
-        cryodrgnCmds = [(" ".join(gitCmds)]
-        env.addPackage('carbonara', version=V1,
+        carbonaraCmds = [(" ".join(gitCmds))]
+        env.addPackage('carbonara', version=version,
                        tar='void.tgz',
-                       commands=installCmds,
+                       commands=carbonaraCmds,
                        neededProgs=cls.getDependencies(),
                        default=True)
                        
