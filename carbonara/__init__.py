@@ -75,7 +75,7 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def defineBinaries(cls, env):
-            cls.addCARBonAraPackage(env, version=__version__)
+        cls.addCARBonAraPackage(env, version=__version__)
             
     @classmethod
     def addCARBonAraPackage(env, version=__version__):
