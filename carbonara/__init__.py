@@ -37,13 +37,15 @@ _references = ['Krapp2024']
 
 
 class Plugin(pwem.Plugin):
+    _homeVar = CARBONARA_HOME
+    _pathVars = [CARBONARA_HOME, CARBONARA_ENV_ACTIVATION]
     _url = "https://github.com/scipion-em/scipion-em-carbonara"
-    _supportedVersions = v1  # binary version
+    _supportedVersions = [V1]  # binary version
 
     @classmethod
     def _defineVariables(cls):
-        cls._defineVar(CARBONARA_ENV_ACTIVATION)
-        cls._defineEmVar(DEFAULT_ACTIVATION_CMD)   
+        cls._defineVar(CARBONARA_HOME, CARBONARA_HOME)
+        cls._defineEmVar(CARBONARA_ENV_ACTIVATION, CARBONARA_ENV_ACTIVATION)   
         
     @classmethod
     def getCARBonAraEnvActivation(cls):
@@ -75,10 +77,10 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def defineBinaries(cls, env):
-        cls.addCARBonAraPackage(env, version=__version__)
+        cls.addCARBonAraPackage(env, version=version)
             
     @classmethod
-    def addCARBonAraPackage(env, version=__version__):
+    def addCARBonAraPackage(env, version=version):
     	# try to get CONDA activation command
         # Commands to create and activate conda environment
         installCmds = [
@@ -98,7 +100,7 @@ class Plugin(pwem.Plugin):
         gitCmds.extend(installCmds)
         carbonaraCmds = [(" ".join(gitCmds))]
         # Add the package to Scipion environment
-        env.addPackage('carbonara', version=version,
+        env.addPackage('carbonara', version=V1,
                        tar='void.tgz',
                        commands=carbonaraCmds,
                        neededProgs=cls.getDependencies(),
