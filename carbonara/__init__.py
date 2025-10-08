@@ -31,8 +31,8 @@ from pyworkflow import Config
 
 from .constants import *
 
-__version__ = '0.0.1'
-_logo = "logo.png"
+__version__ = '0.0.1' #plugin version
+_logo = "icon.png"
 _references = ['Krapp2024']
 
 
