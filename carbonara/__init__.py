@@ -80,21 +80,24 @@ class Plugin(pwem.Plugin):
     @classmethod
     def addCARBonAraPackage(env, version=__version__):
     	# try to get CONDA activation command
+        # Commands to create and activate conda environment
         installCmds = [
             cls.getCondaActivationCmd(),
             f'conda create -n carbonara',
             f'conda activate carbonara',
             f'pip install . &&'
         ]
-    
+        # Commands to clone CARBonAra repo
         url = "https://github.com/LBM-EPFL/CARBonAra"
         gitCmds = [
             'cd .. &&',
             f'git clone {url} &&',
-            f'cd CARBonAra;'
+            f'cd CARBonAra'
         ]
+        # Joining all commands
         gitCmds.extend(installCmds)
         carbonaraCmds = [(" ".join(gitCmds))]
+        # Add the package to Scipion environment
         env.addPackage('carbonara', version=version,
                        tar='void.tgz',
                        commands=carbonaraCmds,
