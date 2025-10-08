@@ -1,38 +1,33 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "scipion-em-carbonara"
 dynamic = ["version", "dependencies"]
-description = "Scipion plugin carbonara"
+
 authors = [
-    {name = "Marta Martinez, Roberto Marabini", email = "scipion@cnb.csic.es"}
+    {name = "Roberto Marabini", email = "roberto@cnb.csic.es"},
+    {name = "Marta Martinez", email = "mmmtnez@cnb.csic.es"},
 ]
-requires-python = ">=3.8"
+description = "Plugin to run CARBonAra within the Scipion framework"
 readme = "README.rst"
+requires-python = ">=3.8"
+keywords = ["scipion", "electron-microscopy", "cryo-em", "structural-biology", "image-processing", "scipion-3.0", "carbonara"]
 license = {text = "GNU General Public License v3 (GPLv3)"}
-classifiers = [
-    #   3 - Alpha
-    #   4 - Beta
-    #   5 - Production/Stable
-    "Development Status :: 3 - Alpha",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-    "Programming Language :: Python :: 3",
-]
-keywords = ["scipion", "cryoem", "imageprocessing", "scipion-3.0"]
 
 [project.urls]
 Homepage = "https://github.com/scipion-em/scipion-em-carbonara"
+Repository = "https://github.com/scipion-em/scipion-em-carbonara"
 Issues = "https://github.com/scipion-em/scipion-em-carbonara/issues"
 
-[tool.setuptools.dynamic]
-#version = {attr = "template.__version__"}
-version = {attr = "carbonara.__version__"}
-dependencies = {file = ["requirements.txt"]}
-
 [tool.setuptools.package-data]
-"carbonara" = ["protocols.conf", "icon.png", "templates/*"]
+"carbonara" = ["protocols.conf", "icon.png"]
 
 [project.entry-points."pyworkflow.plugin"]
 carbonara = "carbonara"
+
+[tool.setuptools.dynamic]
+version = {attr = "carbonara.__version__"}
+dependencies = {file = ["requirements.txt"]}
+
