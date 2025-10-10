@@ -4,7 +4,10 @@ CARBonAra Scipion plugin
 
 This plugin allows to use run **CARBonAra** commands within the **Scipion** framework.
 
-CARBonAra allows protein sequence designing based on structure atomic coordinates. Since this method takes into account the context in sequence generation, it is particularly helpful to design proteins embedded in molecular environments that include non-protein entities such as nucleic acids (See `<https://github.com/LBM-EPFL/CARBonAra/>`_  for details and features).
+CARBonAra allows protein sequence designing based on structure atomic coordinates.
+Since this method takes into account the context in sequence generation, it is particularly helpful to design proteins
+embedded in molecular environments that include non-protein entities such as nucleic acids
+(See `<https://github.com/LBM-EPFL/CARBonAra/>`_  for details and features).
 
 ==========================
 Download the repository
