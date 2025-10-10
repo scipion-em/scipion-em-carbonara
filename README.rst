@@ -1,6 +1,6 @@
-=======================
+=========================
 CARBonAra Scipion plugin
-=======================
+=========================
 
 This plugin allows to use run **CARBonAra** commands within the **Scipion** framework.
 
@@ -23,7 +23,8 @@ Install this plugin
 You will need to use `3.0.0 <https://scipion-em.github.io/docs/release-3.0.0/>`_ version of Scipion to run these protocols.
 Instructions to install this plugin (2 options):
 
-- **Stable version**  
+- **Stable version**
+
 .. code-block:: 
 
       scipion3 installp -p scipion-em-carbonara
@@ -35,6 +36,7 @@ Instructions to install this plugin (2 options):
 OR through the plugin manager GUI by launching Scipion and following **Configuration** >> **Plugins**
       
 - **Developer's version**
+
 .. code-block:: 
 
       cd scipion-em-carbonara
@@ -75,21 +77,21 @@ To check the installation, simply run the following Scipion tests:
 XX,
 
 
-=========
+==========
 Protocols
+==========
+
+=========
+Examples
 =========
 
-========
-Examples
-========
-
-===
+====
 FAQ
-===
+====
 
-===============
+================
 Buildbot status
-===============
+================
 
 Status devel version:
 
