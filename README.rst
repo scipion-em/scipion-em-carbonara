@@ -1,6 +1,6 @@
-=======================
+=========================
 CARBonAra Scipion plugin
-=======================
+=========================
 
 This plugin allows to use run **CARBonAra** commands within the **Scipion** framework.
 
@@ -72,21 +72,21 @@ To check the installation, simply run the following Scipion tests:
 XX,
 
 
-=========
+==========
 Protocols
+==========
+
+=========
+Examples
 =========
 
-========
-Examples
-========
-
-===
+====
 FAQ
-===
+====
 
-===============
+================
 Buildbot status
-===============
+================
 
 Status devel version:
 
