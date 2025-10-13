@@ -98,7 +98,7 @@ class Plugin(pwem.Plugin):
 
                 # Activate Conda y create environment
                 cls.getCondaActivationCmd(),
-                f"conda create -y -n {conda_env},
+                f"conda create -y -n {conda_env} &&",
                 cls.getCARBonAraActivationCmd(),
 
                 # Install
