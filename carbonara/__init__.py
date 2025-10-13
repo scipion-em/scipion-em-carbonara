@@ -46,7 +46,7 @@ class Plugin(pwem.Plugin):
     @classmethod
     def _defineVariables(cls):
         cls._defineVar(CARBONARA_HOME, 'carbonara')
-        cls._defineEmVar(CARBONARA_ENV_ACTIVATION, cls.getCARBonAraActivationCmd)   
+        cls._defineEmVar(CARBONARA_ENV_ACTIVATION, cls.getCARBonAraActivationCmd())   
         
     @classmethod
     def getCARBonAraActivationCmd(cls):
