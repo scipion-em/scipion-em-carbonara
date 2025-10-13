@@ -28,6 +28,7 @@ import os
 import pyworkflow.utils as pwutils
 import pwem
 from pyworkflow import Config
+from scipion.install.funcs import VOID_TGZ
 
 from .constants import *
 
@@ -49,15 +50,7 @@ class Plugin(pwem.Plugin):
         
     @classmethod
     def getCARBonAraActivationCmd(cls):
-        return "conda activate carbonara"
-
-    @classmethod
-    def getCARBonAraEnvActivation(cls):
-        """ Remove the scipion home and activate the conda environment. """
-        activation = cls.getVar(CARBONARA_ENV_ACTIVATION)
-        scipionHome = Config.SCIPION_HOME + os.path.sep
-
-        return activation.replace(scipionHome, "", 1)      
+        return "conda activate carbonara"     
 
     @classmethod
     def getEnviron(cls):
@@ -114,18 +107,14 @@ class Plugin(pwem.Plugin):
             env.addPackage(
                 name="carbonara",
                 version=version,
-                tar="void.tgz",  # Only marker
+                tar=VOID_TGZ,  # Only marker
                 commands=finalCmds,
                 neededProgs=cls.getDependencies(),
                 default=True)
             
         getCARBonAraInstallation(version=V1)
                        
-    @classmethod
-    def getActivationCmd(cls):
-        """ Return the activation command. """
-        return '%s %s' % (cls.getCondaActivationCmd(),
-                          cls.getCARBonAraEnvActivation())
+    
 
     @classmethod
     def getProgram(cls, program, gpus='0'):
