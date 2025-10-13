@@ -77,34 +77,45 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def defineBinaries(cls, env):
-        cls.addCARBonAraPackage(env, version=version)
+        """
+        How to install CARBonAra package from github in Scipion environment.
+        """
+        def getCARBonAraInstallation(version):
+            repo_url = "https://github.com/LBM-EPFL/CARBonAra"
+            repo_name = "CARBonAra"
+            conda_env = "carbonara"
+            FLAG = f"{conda_env}_{version}_installed"
+
+            # Comands to install repo and configure environment
+            install_cmds = [
+                # Cloning repo
+                f"git clone {repo_url} &&",
+                f"cd {repo_name} &&",
+
+                # Activate Conda y create environment
+                cls.getCondaActivationCmd(),
+                f"conda create -y -n {conda_env} &&,
+                cls.getCARBonAraActivationCmd(),
+
+                # Install
+                "pip install . &&",
+
+                # Flag installation finished
+                f'touch {FLAG}' 
+            ]
+
+            finalCmds = [(" ".join(install_cmds), FLAG)]
+
+            # CARBonAra package registered in Scipion environment
+            env.addPackage(
+                name="carbonara",
+                version=version,
+                tar="void.tgz",  # Only marker
+                commands=finalCmds,
+                neededProgs=cls.getDependencies(),
+                default=True)
             
-    @classmethod
-    def addCARBonAraPackage(env, version=version):
-    	# try to get CONDA activation command
-        # Commands to create and activate conda environment
-        installCmds = [
-            cls.getCondaActivationCmd(),
-            f'conda create -n carbonara',
-            f'conda activate carbonara',
-            f'pip install . &&'
-        ]
-        # Commands to clone CARBonAra repo
-        url = "https://github.com/LBM-EPFL/CARBonAra"
-        gitCmds = [
-            'cd .. &&',
-            f'git clone {url} &&',
-            f'cd CARBonAra'
-        ]
-        # Joining all commands
-        gitCmds.extend(installCmds)
-        carbonaraCmds = [(" ".join(gitCmds))]
-        # Add the package to Scipion environment
-        env.addPackage('carbonara', version=V1,
-                       tar='void.tgz',
-                       commands=carbonaraCmds,
-                       neededProgs=cls.getDependencies(),
-                       default=True)
+        getCARBonAraInstallation(version=V1)
                        
     @classmethod
     def getActivationCmd(cls):
