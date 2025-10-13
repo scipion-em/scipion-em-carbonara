@@ -45,8 +45,12 @@ class Plugin(pwem.Plugin):
     @classmethod
     def _defineVariables(cls):
         cls._defineVar(CARBONARA_HOME, 'carbonara')
-        cls._defineEmVar(CARBONARA_ENV_ACTIVATION, 'conda activate carbonara')   
+        cls._defineEmVar(CARBONARA_ENV_ACTIVATION, cls.getCARBonAraActivationCmd)   
         
+    @classmethod
+    def getCARBonAraActivationCmd(cls):
+        return "conda activate carbonara"
+
     @classmethod
     def getCARBonAraEnvActivation(cls):
         """ Remove the scipion home and activate the conda environment. """
@@ -94,7 +98,7 @@ class Plugin(pwem.Plugin):
 
                 # Activate Conda y create environment
                 cls.getCondaActivationCmd(),
-                f"conda create -y -n {conda_env} &&,
+                f"conda create -y -n {conda_env},
                 cls.getCARBonAraActivationCmd(),
 
                 # Install
