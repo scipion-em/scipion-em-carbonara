@@ -50,7 +50,7 @@ class Plugin(pwem.Plugin):
         
     @classmethod
     def getCARBonAraActivationCmd(cls):
-        return "conda activate carbonara"     
+        return "conda activate carbonara && "     
 
     @classmethod
     def getEnviron(cls):
@@ -81,28 +81,32 @@ class Plugin(pwem.Plugin):
             repo_url = "https://github.com/LBM-EPFL/CARBonAra"
             repo_name = "CARBonAra"
             conda_env = "carbonara"
-            FLAG = f"{conda_env}_{version}_installed"
+            FLAG = f'{conda_env}_{version}_installed'
 
-            # Comands to install repo and configure environment
-            install_cmds = [
+            # Comands to clone repo if the repo folder doesn't exist and configure environment
+            if not os.path.isdir(os.path.abspath(repo_name)):
+                command = f'git -C {repo_name} pull '
+            else:
                 # Cloning repo
-                f"git clone {repo_url} &&",
-                f"cd {repo_name} &&",
-
+                command = f'git clone {repo_url} {repo_name} '
+    
+            install_cmds = [
+                f'{command} && '
+                f'cd {repo_name}  && '
                 # Activate Conda y create environment
-                cls.getCondaActivationCmd(),
-                f"conda create -y -n {conda_env} &&",
-                cls.getCARBonAraActivationCmd(),
-
+                f'{cls.getCondaActivationCmd()}'
+                f' conda create -y -n {conda_env} python=3.9 && '
+                f'{cls.getCARBonAraActivationCmd()}' 
                 # Install
-                "pip install . &&",
-
+                f'pip install . && '
                 # Flag installation finished
-                f'touch {FLAG}' 
+                f'cd .. && '
+                f'touch {FLAG}'
             ]
 
             finalCmds = [(" ".join(install_cmds), FLAG)]
-
+            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA: ", finalCmds)
+            
             # CARBonAra package registered in Scipion environment
             env.addPackage(
                 name="carbonara",
@@ -114,8 +118,6 @@ class Plugin(pwem.Plugin):
             
         getCARBonAraInstallation(version=V1)
                        
-    
-
     @classmethod
     def getProgram(cls, program, gpus='0'):
         """ Create CARBonAracommand line. """
