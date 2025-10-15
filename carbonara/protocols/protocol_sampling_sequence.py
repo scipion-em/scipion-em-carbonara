@@ -28,7 +28,8 @@
 
 
 """
-This module allows to run CARBonAra method to generate multiples sequences based on a certain atom structure"
+This module allows to run CARBonAra method to generate 
+multiples sequences based on a certain atom structure"
 """
 from enum import Enum
 

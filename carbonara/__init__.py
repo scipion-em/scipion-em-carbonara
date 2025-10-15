@@ -27,12 +27,12 @@
 import os
 import pyworkflow.utils as pwutils
 import pwem
-from pyworkflow import Config
+# from pyworkflow import Config
 from scipion.install.funcs import VOID_TGZ
 
-from .constants import *
+from .constants import (CARBONARA_HOME, CARBONARA_ENV_ACTIVATION, V1)
 
-__version__ = '0.0.1' #plugin version
+__version__ = '0.0.1'  # plugin version
 _logo = "icon.png"
 _references = ['Krapp2024']
 
@@ -46,11 +46,12 @@ class Plugin(pwem.Plugin):
     @classmethod
     def _defineVariables(cls):
         cls._defineVar(CARBONARA_HOME, 'carbonara')
-        cls._defineEmVar(CARBONARA_ENV_ACTIVATION, cls.getCARBonAraActivationCmd())   
-        
+        cls._defineEmVar(CARBONARA_ENV_ACTIVATION,
+                         cls.getCARBonAraActivationCmd())
+
     @classmethod
     def getCARBonAraActivationCmd(cls):
-        return "conda activate carbonara && "     
+        return "conda activate carbonara && "
 
     @classmethod
     def getEnviron(cls):
@@ -69,10 +70,10 @@ class Plugin(pwem.Plugin):
         neededProgs = []
         if not condaActivationCmd:
             neededProgs.append('conda')
-            
+
         return neededProgs
 
-    @classmethod
+    # @classmethod
     def defineBinaries(cls, env):
         """
         How to install CARBonAra package from github in Scipion environment.
@@ -84,19 +85,20 @@ class Plugin(pwem.Plugin):
             FLAG = f'{conda_env}_{version}_installed'
 
             # Comands to clone repo if the repo folder doesn't exist and configure environment
-            if not os.path.isdir(os.path.abspath(repo_name)):
+            installation_path = os.path.join(pwem.Config.EM_ROOT, f"{conda_env}-{version}")
+            if os.path.isdir(installation_path):
                 command = f'git -C {repo_name} pull '
             else:
                 # Cloning repo
                 command = f'git clone {repo_url} {repo_name} '
-    
+
             install_cmds = [
                 f'{command} && '
                 f'cd {repo_name}  && '
                 # Activate Conda y create environment
                 f'{cls.getCondaActivationCmd()}'
                 f' conda create -y -n {conda_env} python=3.9 && '
-                f'{cls.getCARBonAraActivationCmd()}' 
+                f'{cls.getCARBonAraActivationCmd()}'
                 # Install
                 f'pip install . && '
                 # Flag installation finished
@@ -105,8 +107,10 @@ class Plugin(pwem.Plugin):
             ]
 
             finalCmds = [(" ".join(install_cmds), FLAG)]
-            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA: ", finalCmds)
-            
+            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA: ",
+                  os.getcwd(), os.path.join(pwem.Config.EM_ROOT, f"{conda_env}-{version}"),
+                  finalCmds)
+
             # CARBonAra package registered in Scipion environment
             env.addPackage(
                 name="carbonara",
@@ -115,9 +119,9 @@ class Plugin(pwem.Plugin):
                 commands=finalCmds,
                 neededProgs=cls.getDependencies(),
                 default=True)
-            
+
         getCARBonAraInstallation(version=V1)
-                       
+
     @classmethod
     def getProgram(cls, program, gpus='0'):
         """ Create CARBonAracommand line. """
@@ -125,5 +129,3 @@ class Plugin(pwem.Plugin):
             cls.getActivationCmd(), gpus, program)
 
         return fullProgram
-                       
-                       

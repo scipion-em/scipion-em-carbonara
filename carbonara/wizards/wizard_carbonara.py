@@ -2,7 +2,7 @@ from pyworkflow.gui import ListTreeProviderString, dialog
 from pyworkflow.object import String
 from pyworkflow.wizard import Wizard
 
-from myplugin.protocols import MyPluginPrefixHelloWorld
+from carbonara.protocols import MyPluginPrefixHelloWorld
 
 
 class MyPluginPrefixHelloWorldWizard(Wizard):
@@ -17,11 +17,14 @@ class MyPluginPrefixHelloWorldWizard(Wizard):
                      String("Ciao mondo"), String("Hallo Wereld"),
                      String("Privet, mir")]
 
-        # Get a data provider from the greetings to be used in the tree (dialog)
+        # Get a data provider from the greetings to be used
+        # in the tree (dialog)
         provider = ListTreeProviderString(greetings)
 
         # Show the dialog
-        dlg = dialog.ListDialog(form.root, "Greetings from the world", provider,
+        dlg = dialog.ListDialog(form.root,
+                                "Greetings from the world",
+                                provider,
                                 "Select one of the greetings)")
 
         # Set the chosen value back to the form
