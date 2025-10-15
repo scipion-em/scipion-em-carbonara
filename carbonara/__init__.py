@@ -84,8 +84,10 @@ class Plugin(pwem.Plugin):
             conda_env = "carbonara"
             FLAG = f'{conda_env}_{version}_installed'
 
-            # Comands to clone repo if the repo folder doesn't exist and configure environment
-            installation_path = os.path.join(pwem.Config.EM_ROOT, f"{conda_env}-{version}")
+            # Comands to clone repo if the repo folder doesn't
+            # exist and configure environment
+            installation_path = os.path.join(
+                pwem.Config.EM_ROOT, f"{conda_env}-{version}")
             if os.path.isdir(installation_path):
                 command = f'git -C {repo_name} pull '
             else:
