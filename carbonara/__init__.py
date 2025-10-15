@@ -84,12 +84,16 @@ class Plugin(pwem.Plugin):
             FLAG = f'{conda_env}_{version}_installed'
 
             # Comands to clone repo if the repo folder doesn't exist and configure environment
-            if not os.path.isdir(os.path.abspath(repo_name)):
-                command = f'git -C {repo_name} pull '
+            BIN = str(conda_env + "-" + version)
+            scipionHome = Config.SCIPION_HOME
+            repo_parent = os.path.join(scipionHome, "software/em", BIN)
+            final_path = os.path.join(repo_parent, repo_name)
+            if os.path.isdir(final_path):
+                command = f'git -C {repo_name} pull'
             else:
                 # Cloning repo
                 command = f'git clone {repo_url} {repo_name} '
-    
+
             install_cmds = [
                 f'{command} && '
                 f'cd {repo_name}  && '
