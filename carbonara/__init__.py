@@ -34,7 +34,7 @@ from scipion.install.funcs import VOID_TGZ
 from .constants import (CARBONARA_HOME, CARBONARA_ENV_ACTIVATION,
                         GIT_CLONE_CMD, conda_env)
 
-__version__ = '0.0.1'  # plugin version
+__version__ = '0.0.2'  # plugin version
 _logo = "icon.png"
 _references = ['Krapp2024']
 

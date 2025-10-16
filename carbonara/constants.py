@@ -25,8 +25,7 @@
 # *
 # **************************************************************************
 
-V1 = "1.0.0"
-
+# V1 = "1.0.0"
 CARBONARA_HOME = 'CARBONARA_HOME'
 CARBONARA_ENV_ACTIVATION = "CARBONARA_ENV_ACTIVATION"
 DEFAULT_ACTIVATION_CMD = "DEFAULT_ACTIVATION_CMD"
