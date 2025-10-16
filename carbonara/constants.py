@@ -27,7 +27,11 @@
 
 V1 = "1.0.0"
 
-
 CARBONARA_HOME = 'CARBONARA_HOME'
 CARBONARA_ENV_ACTIVATION = "CARBONARA_ENV_ACTIVATION"
 DEFAULT_ACTIVATION_CMD = "DEFAULT_ACTIVATION_CMD"
+repo_url = "https://github.com/LBM-EPFL/CARBonAra"
+GIT_CLONE_CMD = "pip install -vv git+https://github.com/LBM-EPFL/CARBonAra.git@1ed6359f299e14274bd0372bc3fb0594506decc8"
+
+repo_name = "CARBonAra"
+conda_env = "carbonara"
