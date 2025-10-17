@@ -46,8 +46,8 @@ from carbonara import Plugin
 
 class ProtCarbonara(EMProtocol):
     """
-    CARBonAra is an automatic method that generates multiple 
-    able to fold in a certain structuralconfiguration (atom structure used as input). 
+    CARBonAra is an automatic method that generates multiple sequences
+    able to fold in a certain structural configuration (atom structure used as input). 
     """
     _label = 'carbonara'
     _program = ""
@@ -236,17 +236,17 @@ class ProtCarbonara(EMProtocol):
 
         
     def createOutputStep(self):
-        """Register atomic models generated"""
-        # check if .pdb files exist before registering
+        """Register sequences generated"""
+        # check if .fasta files exist before registering
         directory = self._getExtraPath()
 
         for filename in sorted(os.listdir(directory)):
-            if filename.endswith(".pdb"):
+            if filename.endswith(".fasta"):
                 path = os.path.join(directory, filename)
-                pdb = AtomStruct()
-                pdb.setFileName(path)
-                keyword = filename.split(".pdb")[0].replace(".", "_")
-                kwargs = {keyword: pdb}
+                seq = Sequence()
+                seq.setSeqNames(path)
+                keyword = filename.split(".fasta")[0]
+                kwargs = {keyword: seq}
                 self._defineOutputs(**kwargs)
 
     # --------------------------- INFO functions ----------------------------
@@ -267,7 +267,7 @@ class ProtCarbonara(EMProtocol):
             directory = self._getExtraPath()
             counter = 0
             for filename in sorted(os.listdir(directory)):
-                if filename.endswith(".pdb"):
+                if filename.endswith(".fasta"):
                     counter += 1       
             summary.append("%s sequence predicted" % counter)
         else:
