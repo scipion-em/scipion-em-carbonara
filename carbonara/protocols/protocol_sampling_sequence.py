@@ -44,12 +44,12 @@ from pwem.convert.atom_struct import AtomicStructHandler
 
 from carbonara import Plugin
 
-class ProtCarbonara(EMProtocol):
+class CarbonaraSamplingSequence(EMProtocol):
     """
     CARBonAra is an automatic method that generates multiple sequences
     able to fold in a certain structural configuration (atom structure used as input). 
     """
-    _label = 'carbonara'
+    _label = 'sampling sequence'
     _program = ""
     _version = ""
 
@@ -84,7 +84,7 @@ class ProtCarbonara(EMProtocol):
                            ' prior information to bias the prediction')
 
         form.addParam('bSampled', params.EnumParam, 
-                      choices=['max', 'sampled'],default=['sampled'],
+                      choices=['max', 'sampled'],default=1,
                       expertLevel=LEVEL_ADVANCED, allowsNull=False,
                       label='Sampling method',
                       help='"sampled" means sampling from probability. It will result in higher\n'
