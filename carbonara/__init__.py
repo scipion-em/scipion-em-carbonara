@@ -151,9 +151,11 @@ class Plugin(pwem.Plugin):
         getCARBonAraInstallation(version=__version__)
 
     @classmethod
-    def getProgram(cls, program, gpus='0'):
-        """ Create CARBonAracommand line. """
-        fullProgram = '%s && CUDA_VISIBLE_DEVICES=%s carbonara %s' % (
-            cls.getActivationCmd(), gpus, program)
-
-        return fullProgram
+    def getCarbonaraCmd(cls):
+        cmd = cls.getVar(CARBONARA_ENV_ACTIVATION)
+        if not cmd:
+            cmd = cls.getCondaActivationCmd()
+            cmd += cls.getVar(CARBONARA_ENV_ACTIVATION)
+        cmd += cls.getVar(CARBONARA_HOME)
+        return cmd
+    
