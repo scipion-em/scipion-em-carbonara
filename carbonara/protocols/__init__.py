@@ -26,4 +26,4 @@
 # *
 # **************************************************************************
 
-from .protocol_sampling_sequence import ProtCarbonara
+from .protocol_sampling_sequence import CarbonaraSamplingSequence
