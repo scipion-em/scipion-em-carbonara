@@ -32,17 +32,15 @@ import subprocess
 from pwem.objects import AtomStruct, Sequence, SetOfSequences
 from pwem.convert.atom_struct import fromCIFToPDB
 from pyworkflow.constants import BETA
-from pyworkflow.protocol import params, LEVEL_ADVANCED
+from pyworkflow.protocol import (params, 
+                                LEVEL_ADVANCED,
+                                GPU_LIST,
+                                USE_GPU)
 from pyworkflow.utils import Message
 from pyworkflow.object import Integer
 from pwem.protocols import EMProtocol
-from pyworkflow.protocol import GPU_LIST, USE_GPU
 from pwem.convert.atom_struct import AtomicStructHandler
-from pyworkflow.protocol.params import (MultiPointerParam, 
-                                        PointerParam,
-                                        EnumParam,
-                                        BooleanParam, 
-                                        StringParam)
+
 
 from carbonara import Plugin
 
@@ -149,12 +147,14 @@ class ProtCarbonara(EMProtocol):
                            ' the prediction.')         
                                 
         form.addHidden(USE_GPU, params.BooleanParam, default=True,
+                       expertLevel=LEVEL_ADVANCED,
                        label="Use GPU for execution?",
                        help="This protocol has both CPU and GPU implementation. "
                             "Select the one you want to use.")
 
         form.addHidden(GPU_LIST, params.StringParam, default='0',
                        expertLevel=LEVEL_ADVANCED,
+                       condition=('USE_GPU==True'),
                        label="Choose GPU ID (single one)",
                        help="GPU device to be used")
 
@@ -218,11 +218,12 @@ class ProtCarbonara(EMProtocol):
             args.extend(["--ignore_water"])
 
         # use GPU
-        if not self.USE_GPU:
+        if not USE_GPU:
             args.extend(["--device", "cpu"])
         else:
             args.extend(["--device", "cuda"])
-            os.environ["CUDA_VISIBLE_DEVICES"] = self.GPU_LIST  # Solo se verá una GPU 
+            os.environ["CUDA_VISIBLE_DEVICES"] = self.getGpuList()[0]  # selected GPU
+            print("I'm using GPU " + self.getGpuList()[0])
 
         # pdb_filepath
         args.extend([self.inputStructure])
@@ -230,16 +231,48 @@ class ProtCarbonara(EMProtocol):
         # output_dir
         args.extend([self._getExtraPath()])
 
+        # Call carbonara:
+        self.runJob(Plugin.getCarbonaraCmd(), args)
+
         
-        try:
-            # Call carbonara:
-            self.runJob(Plugin.getCarbonaraCmd(), args)
-        except Exception:
-            # 
-            with open(self._getExtraPath("model_angelo.log")) as log:
-                for line in log.read().splitlines():
-                    self.error(line)
-            self.info("ERROR: %s." % line)
-            raise ChildProcessError("Model angelo has failed: %s. See error log "
-                                    "for more details." % line) from None
-        
+    def createOutputStep(self):
+        """Register atomic models generated"""
+        # check if .pdb files exist before registering
+        directory = self._getExtraPath()
+
+        for filename in sorted(os.listdir(directory)):
+            if filename.endswith(".pdb"):
+                path = os.path.join(directory, filename)
+                pdb = AtomStruct()
+                pdb.setFileName(path)
+                keyword = filename.split(".pdb")[0].replace(".", "_")
+                kwargs = {keyword: pdb}
+                self._defineOutputs(**kwargs)
+
+    # --------------------------- INFO functions ----------------------------
+    def _validate(self):
+        errors = []
+
+        gpus = self.getGpuList()
+
+        if len(gpus) > 1:
+            errors.append('Only one GPU can be used.')
+
+        return errors
+
+    def _summary(self):
+        # Think on how to update this summary with created PDB
+        summary = []
+        if self.getOutputsSize() > 0:
+            directory = self._getExtraPath()
+            counter = 0
+            for filename in sorted(os.listdir(directory)):
+                if filename.endswith(".pdb"):
+                    counter += 1       
+            summary.append("%s sequence predicted" % counter)
+        else:
+            summary.append(Message.TEXT_NO_OUTPUT_FILES)
+        return summary
+    
+    def _citations(self):
+        return ['Krapp2024-dw']
