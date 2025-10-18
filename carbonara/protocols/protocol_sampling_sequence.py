@@ -91,20 +91,43 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' diversity while still maintaining reasonable sequence confidence.\n'
                            ' "max" means sampling with maximum confidence. It will result in\n'
                            ' high-confidence predictions but low diversity.')
+        form.addParam('chainOptions1', params.BooleanParam, 
+                      default=True,
+                      expertLevel=LEVEL_ADVANCED, allowsNull=False,
+                      label='Would you like to exclude some chains from sequence prediction?',
+                      help='Select "YES" or "NOT"')
         
         form.addParam('selectStructureChains', params.EnumParam, 
                       expertLevel=LEVEL_ADVANCED, 
-                      choices=[], allowsNull=True,
+                      choices=[], allowsNull=True, 
+                      condition='chainOptions1 == True',
                       label='Excluded chains',
                       help='"Use the wizard on the right to select the list of known chains for\n'
                            ' which no new sequences will be predicted. Moreover, the sequence\n'
                            ' information of the selected chains will be used as prior information\n'
                            ' for the prediction. "')   
                     # Associate wizard to this parm
-                      
+
+        form.addParam('chainOptions2', params.BooleanParam, 
+                      default=False,
+                      condition='chainOptions1 == False',
+                      expertLevel=LEVEL_ADVANCED, allowsNull=False,
+                      label='Would you like to select one chain for sequence prediction?',
+                      help='Select "YES" or "NOT"')
+        
+        form.addParam('selectOneChain', params.StringParam, 
+                      expertLevel=LEVEL_ADVANCED, 
+                      choices=[], allowsNull=True, 
+                      condition='chainOptions1 == False and chainOptions2 == True',
+                      label='Select one chain',
+                      help='"Use the wizard on the right to select the chain for\n'
+                           ' which a new sequences will be predicted."')   
+                    # Associate wizard to this parm
+           
         form.addParam('selectKnownResidues', params.EnumParam, 
                       expertLevel=LEVEL_ADVANCED, 
-                      choices=[], allowsNull=True,
+                      choices=[], allowsNull=True, 
+                      condition='chainOptions1 == False and chainOptions2 == True',
                       label='Excluded residues',
                       help='"Use the wizard on the right to select the list of known resides for\n'
                            ' which no new sequences will be predicted. Moreover, the sequence\n'
@@ -114,8 +137,9 @@ class CarbonaraSamplingSequence(EMProtocol):
                       
         form.addParam('selectUnknownResidues', params.EnumParam, 
                       expertLevel=LEVEL_ADVANCED, 
-                      choices=[], allowsNull=True,
+                      choices=[], allowsNull=True, 
                       label='Included residues',
+                      condition='chainOptions1 == False and chainOptions2 == True',
                       help='"Use the wizard on the right to select the list of resides that will\n'
                            ' be overwritten to the two previous params and re-designed. New\n'
                            ' sequences will be only predicted for these selected positions and\n'
