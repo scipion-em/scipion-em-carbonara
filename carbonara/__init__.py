@@ -48,7 +48,7 @@ class Plugin(pwem.Plugin):
     @classmethod
     def _defineVariables(cls):
         cls._defineVar(CARBONARA_HOME, 'carbonara')
-        cls._defineEmVar(CARBONARA_ENV_ACTIVATION,
+        cls._defineVar(CARBONARA_ENV_ACTIVATION,
                          cls.getCARBonAraActivationCmd())
 
     @classmethod
@@ -158,4 +158,4 @@ class Plugin(pwem.Plugin):
             cmd += cls.getVar(CARBONARA_ENV_ACTIVATION)
         cmd += cls.getVar(CARBONARA_HOME)
         return cmd
-    
+    #cmd = "/home/mmmtnz/miniconda/envs/carbonara/bin/carbonara"
