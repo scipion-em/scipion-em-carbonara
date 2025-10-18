@@ -26,5 +26,3 @@
 # **************************************************************************
 
 from .wizard_carbonara import CarbonaraSamplingSequenceWizard
-
-
