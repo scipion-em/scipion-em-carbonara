@@ -3,10 +3,11 @@
 # * Authors:     Marta Martinez (mmmtnez@cnb.csic.es)
 #                Roberto Marabini (roberto@cnb.csic.es)
 # *
+# * CNB CSIC
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -23,44 +24,42 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-
 import os
 import sys
-import pyworkflow.utils as pwutils
+
 import pwem
-# from pyworkflow import Config
+import pyworkflow.utils as pwutils
 from scipion.install.funcs import VOID_TGZ
 
-from .constants import (CARBONARA_HOME, CARBONARA_ENV_ACTIVATION,
-                        GIT_CLONE_CMD, conda_env)
+from .constants import (CARBONARA_ENV_ACTIVATION, conda_env,
+                        GIT_CLONE_CMD, CARBONARA_PROGRAM)
 
-__version__ = '0.0.2'  # plugin version
+__version__ = "0.0.1"
 _logo = "icon.png"
 _references = ['Krapp2024']
 
-
 class Plugin(pwem.Plugin):
-    _homeVar = CARBONARA_HOME
-    _pathVars = [CARBONARA_HOME, CARBONARA_ENV_ACTIVATION]
-    _url = "https://github.com/scipion-em/scipion-em-carbonara"
-    _supportedVersions = ['__version__']  # binary version
 
     @classmethod
     def _defineVariables(cls):
-        cls._defineVar(CARBONARA_HOME, 'carbonara')
+        # CARBONARA_ENV_ACTIVATION="conda activate carbonara"
         cls._defineVar(CARBONARA_ENV_ACTIVATION,
-                         cls.getCARBonAraActivationCmd())
+                       cls.getCARBonAraActivationCmd())
 
     @classmethod
-    def getCARBonAraActivationCmd(cls):
-        return "conda activate carbonara && "
+    def getCarbonaraCmd(cls):
+        cmd = cls.getVar(CARBONARA_ENV_ACTIVATION)
+        cmd += f" && {CARBONARA_PROGRAM} "
+        return cmd
 
     @classmethod
     def getEnviron(cls):
-        """ Setup the environment variables needed to launch CARBonAra. """
         environ = pwutils.Environ(os.environ)
-
         return environ
+
+    @classmethod
+    def getCARBonAraActivationCmd(cls):   # getActivationCmd
+        return f'conda activate {conda_env}'
 
     @classmethod
     def getDependencies(cls):
@@ -81,7 +80,8 @@ class Plugin(pwem.Plugin):
         import subprocess
         import json
 
-        def create_or_update_conda_env(env_name, packages=None, python_version="3.8"):
+        def create_or_update_conda_env(
+                env_name, packages=None, python_version="3.8"):
             # Get list of existing environments
             result = subprocess.run(
                 ["conda", "env", "list", "--json"],
@@ -90,7 +90,9 @@ class Plugin(pwem.Plugin):
                 check=True
             )
             envs = json.loads(result.stdout)["envs"]
-            env_exists = any(env.endswith(f"/{env_name}") or env.endswith(f"\\{env_name}") for env in envs)
+            env_exists = any(
+                env.endswith(f"/{env_name}") or
+                env.endswith(f"\\{env_name}") for env in envs)
 
             if env_exists:
                 print(f"Updating existing Conda environment: {env_name}")
@@ -101,7 +103,8 @@ class Plugin(pwem.Plugin):
                     command = f"conda update --all --yes --name {env_name}"
             else:
                 print(f"Creating new Conda environment: {env_name}")
-                command = f"conda create --yes --name {env_name} python={python_version}"
+                command = "conda create --yes --name "\
+                          f"{env_name} python={python_version}"
                 if packages:
                     command += packages
 
@@ -123,7 +126,7 @@ class Plugin(pwem.Plugin):
                 # f' conda create -y -n {conda_env} python=3.9 && '
                 # change to
                 # f'cd {conda_env_path}  && '
-                f'{cls.getCARBonAraActivationCmd()}'
+                f'{cls.getCARBonAraActivationCmd()} &&'
                 # Install
                 f'{GIT_CLONE_CMD} && '
                 # Flag installation finished
@@ -133,11 +136,11 @@ class Plugin(pwem.Plugin):
 
             # finalCmds = [(" ".join(install_cmds), FLAG)]
             finalCmds = [(install_cmds, FLAG)]
-            print(
-                "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA: ",
-                os.getcwd(),
-                os.path.join(pwem.Config.EM_ROOT, f"{conda_env}-{version}"),
-                finalCmds, FLAG)
+            # print(
+            #     "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA: ",
+            #     os.getcwd(),
+            #     os.path.join(pwem.Config.EM_ROOT, f"{conda_env}-{version}"),
+            #     finalCmds, FLAG)
 
             # CARBonAra package registered in Scipion environment
             env.addPackage(
@@ -149,6 +152,7 @@ class Plugin(pwem.Plugin):
                 default=True)
 
         getCARBonAraInstallation(version=__version__)
+<<<<<<< HEAD
 
     @classmethod
     def getCarbonaraCmd(cls):
@@ -159,3 +163,5 @@ class Plugin(pwem.Plugin):
         cmd += cls.getVar(CARBONARA_HOME)
         return cmd
     #cmd = "/home/mmmtnz/miniconda/envs/carbonara/bin/carbonara"
+=======
+>>>>>>> a97db8c29389f5a0aaadd0a082da7bff9a5d184a

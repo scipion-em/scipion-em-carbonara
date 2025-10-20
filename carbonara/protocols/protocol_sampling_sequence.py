@@ -171,8 +171,9 @@ class CarbonaraSamplingSequence(EMProtocol):
         # get atom structure file name
         self.atomStructure = self.atomStruct.get()
         self.atomStructName = os.path.abspath(self.atomStructure.getFileName())
+        self.inputStructure
 
-        self.inputStructure = fromCIFToPDB(self.atomStructName, self.inputStructure)
+        fromCIFToPDB(self.atomStructName, self.inputStructure)
 
         structureHandler = AtomicStructHandler()
         structureHandler.read(self.inputStructure) 
