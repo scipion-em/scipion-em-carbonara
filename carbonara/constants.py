@@ -26,9 +26,9 @@
 # **************************************************************************
 
 # V1 = "1.0.0"
-CARBONARA_HOME = 'CARBONARA_HOME'
+CARBONARA_PROGRAM = 'carbonara'
 CARBONARA_ENV_ACTIVATION = "CARBONARA_ENV_ACTIVATION"
-DEFAULT_ACTIVATION_CMD = "DEFAULT_ACTIVATION_CMD"
+# DEFAULT_ACTIVATION_CMD = "DEFAULT_ACTIVATION_CMD"
 repo_url = "https://github.com/LBM-EPFL/CARBonAra"
 # string after '@' is the commit hash to be installed
 # if this hash is modified the wrapper version should be increased
