@@ -152,16 +152,4 @@ class Plugin(pwem.Plugin):
                 default=True)
 
         getCARBonAraInstallation(version=__version__)
-<<<<<<< HEAD
 
-    @classmethod
-    def getCarbonaraCmd(cls):
-        cmd = cls.getVar(CARBONARA_ENV_ACTIVATION)
-        if not cmd:
-            cmd = cls.getCondaActivationCmd()
-            cmd += cls.getVar(CARBONARA_ENV_ACTIVATION)
-        cmd += cls.getVar(CARBONARA_HOME)
-        return cmd
-    #cmd = "/home/mmmtnz/miniconda/envs/carbonara/bin/carbonara"
-=======
->>>>>>> a97db8c29389f5a0aaadd0a082da7bff9a5d184a
