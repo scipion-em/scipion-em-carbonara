@@ -30,7 +30,6 @@ from enum import Enum
 import os 
 import subprocess
 from pwem.objects import AtomStruct, Sequence, SetOfSequences
-from pwem.convert.atom_struct import fromCIFToPDB
 from pyworkflow.constants import BETA
 from pyworkflow.protocol import (params, 
                                 LEVEL_ADVANCED,
@@ -39,7 +38,7 @@ from pyworkflow.protocol import (params,
 from pyworkflow.utils import Message
 from pyworkflow.object import Integer
 from pwem.protocols import EMProtocol
-from pwem.convert.atom_struct import AtomicStructHandler
+from pwem.convert.atom_struct import AtomicStructHandler, fromCIFToPDB
 
 
 from carbonara import Plugin
@@ -54,6 +53,8 @@ class CarbonaraSamplingSequence(EMProtocol):
     _version = ""
 
 # -------------------------- DEFINE param functions ----------------------
+    METHOD_OPTIONS=['max', 'sampled']
+
     def _defineParams(self, form):
         """ Defining the input parameters that will be used.
         """
@@ -82,9 +83,11 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' prior information. To get higher variability in the sequence you\n'
                            ' have to choose values close to 1.0. All the positions will contain\n'
                            ' prior information to bias the prediction')
-
+    
         form.addParam('bSampled', params.EnumParam, 
-                      choices=['max', 'sampled'],default=1,
+                      choices=self.METHOD_OPTIONS,
+                      display=params.EnumParam.DISPLAY_LIST,
+                      default=1,
                       expertLevel=LEVEL_ADVANCED, allowsNull=False,
                       label='Sampling method',
                       help='"sampled" means sampling from probability. It will result in higher\n'
@@ -92,19 +95,35 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' "max" means sampling with maximum confidence. It will result in\n'
                            ' high-confidence predictions but low diversity.')
         
-        form.addParam('selectStructureChains', params.EnumParam, 
+        form.addParam('selectChains', params.BooleanParam,
+                      expertLevel=LEVEL_ADVANCED,
+                      label="Exclude any CHAINS from sampling?",
+                      default=False,
+                      help="Select 'Yes' if you want to exclude from sampling any specific chain "
+                            "(one or more) of the atom structure.\n")
+        
+        form.addParam('selectStructureChains', params.StringParam, 
                       expertLevel=LEVEL_ADVANCED, 
-                      choices=[], allowsNull=True,
+                      condition=('selectChains==True'),
+                      default=None, important=True,
                       label='Excluded chains',
                       help='"Use the wizard on the right to select the list of known chains for\n'
                            ' which no new sequences will be predicted. Moreover, the sequence\n'
                            ' information of the selected chains will be used as prior information\n'
                            ' for the prediction. "')   
-                    # Associate wizard to this parm
+                    # Associate wizard to this param
+
+        form.addParam('selectKnoumResidues', params.BooleanParam,
+                      expertLevel=LEVEL_ADVANCED,
+                      label="Exclude any RESIDUES from sampling?",
+                      default=False,
+                      help="Select 'Yes' if you want to exclude from sampling any specific residues "
+                            "(one or more) of the atom structure.\n")
                       
-        form.addParam('selectKnownResidues', params.EnumParam, 
+        form.addParam('selectKnownStructureResidues', params.StringParam, 
                       expertLevel=LEVEL_ADVANCED, 
-                      choices=[], allowsNull=True,
+                      condition=('selectKnoumResidues==True'),
+                      default=None, important=True,
                       label='Excluded residues',
                       help='"Use the wizard on the right to select the list of known resides for\n'
                            ' which no new sequences will be predicted. Moreover, the sequence\n'
@@ -112,9 +131,17 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' information for the prediction. "')  
                     # Associate wizard to this parm   
                       
-        form.addParam('selectUnknownResidues', params.EnumParam, 
+        form.addParam('selectUnknoumResidues', params.BooleanParam,
+                      expertLevel=LEVEL_ADVANCED,
+                      label="Select specific RESIDUES for sampling?",
+                      default=False,
+                      help="Select 'Yes' if you want to select for sampling any specific residues "
+                            "(one or more) of the atom structure.\n")
+        
+        form.addParam('selectUnknownStructureResidues', params.StringParam, 
                       expertLevel=LEVEL_ADVANCED, 
-                      choices=[], allowsNull=True,
+                      condition=('selectUnknoumResidues==True'),
+                      default=None, important=True,
                       label='Included residues',
                       help='"Use the wizard on the right to select the list of resides that will\n'
                            ' be overwritten to the two previous params and re-designed. New\n'
@@ -123,10 +150,18 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' prediction."')  
                     # Associate wizard to this parm  
                       
-        form.addParam('selectIgnoredAminoacids', params.EnumParam, 
+        form.addParam('ignoreAminoacids', params.BooleanParam,
+                      expertLevel=LEVEL_ADVANCED,
+                      label="Ignore specific AMINOACIDS from sampling?",
+                      default=False,
+                      help="Select 'Yes' if you want to exclude from sampling any specific aminoacids "
+                            "(one or more) of the atom structure.\n")
+        
+        form.addParam('selectIgnoredAminoacids', params.StringParam, 
                       expertLevel=LEVEL_ADVANCED, 
                       choices=["A","R","N","D","C","Q","E","G","H","I","L","K","M","F","P","S","T","W","Y","V"], 
-                      allowsNull=True,
+                      condition=('ignoreAminoacids==True'),
+                      default=None, important=True,
                       label='Ignored aminoacids',
                       help='"Use the wizard on the right to select the list of aminoacids that will\n'
                            ' be completely ignored for the sequence sampling. The prior\n'
@@ -168,47 +203,58 @@ class CarbonaraSamplingSequence(EMProtocol):
     # --------------------------- STEPS functions ------------------------------
     def preRequisitesStep(self):
 
-        # get atom structure file name
-        self.atomStructure = self.atomStruct.get()
-        self.atomStructName = os.path.abspath(self.atomStructure.getFileName())
-        self.inputStructure
+        # get atom structure PDBx/mmCIF file name
 
-        fromCIFToPDB(self.atomStructName, self.inputStructure)
-
-        structureHandler = AtomicStructHandler()
-        structureHandler.read(self.inputStructure) 
-        structureHandler.getStructure()
-        self.listOfChains, self.listOfResidues = structureHandler.getModelsChains()
-        # returns a dict of chains with residues
+        fileName = self.atomStruct.get().getFileName()
+        self.atomStructName = os.path.abspath(fileName)
+        
+        # convert CIF to PDB file
+        if self.atomStructName.endswith('.cif'):
+            atomStructReName = os.path.abspath(
+                self._getExtraPath(os.path.basename(
+                    os.path.splitext(self.atomStructName)[0] + ".pdb")))
+            fromCIFToPDB(self.atomStructName, atomStructReName, log = self._log)
+            self.atomStructName =  atomStructReName
+        
+        # get a dict of chains with residues
+        h = AtomicStructHandler()
+        h.read(self.atomStructName) 
+        h.getStructure()
+        self.listOfChains, self.listOfResidues = h.getModelsChains()
+        print("self.listOfChains: ", self.listOfChains)
 
     def processStep(self):
     
         args = []
         
         # number of atom structures
-        args.extend(["--num_sequences", self.numSample])
+        args.extend(["--num_sequences", str(self.numSamples.get())])
         
         # ratio of prior information
-        args.extend(["--imprint_ratio", self.imprintRadio])
+        args.extend(["--imprint_ratio", str(self.imprintRadio.get())])
                     
         # sampling method  
-        args.extend(["--sampling_method", self.bSampled])
+        args.extend(["--sampling_method", self.METHOD_OPTIONS[self.bSampled.get()]])
 
         # excluded chains        
-        if len(self.selectStructureChains) > 0:
-            args.extend(["--known_chains", self.selectStructureChains])
+        if self.selectChains==True and self.selectStructureChains.get() is not None:
+            chains = str(self.selectStructureChains.get())
+            args.extend(["--known_chains", chains])
 
         # excluded residues
-        if len(self.selectKnownResidues) > 0:
-            args.extend(["--known_positions", self.selectKnownResidues])  
+        if self.selectKnoumResidues==True and self.selectKnownStructureResidues.get() is not None:
+            knownResidues = str(self.selectKnownResidues.get())
+            args.extend(["--known_positions", knownResidues])  
 
         # included residues  
-        if len(self.selectUnknownResidues) > 0:
-            args.extend(["--unknown_positions", self.selectUnknownResidues]) 
+        if self.selectUnknoumResidues==True and self.selectUnknownStructureResidues.get() is not None:
+            unknownResidues = str(self.selectUnknownStructureResidues.get())
+            args.extend(["--unknown_positions", unknownResidues]) 
 
         # ignored aminoacid
-        if len(self.selectIgnoredAminoacids) > 0:
-            args.extend(["--ignored_amino_acids", self.selectIgnoredAminoacids]) 
+        if self.ignoreAminoacids==True and self.selectIgnoredAminoacids.get() is not None:
+            ignoredResidues = str(self.selectIgnoredAminoacids.get())
+            args.extend(["--ignored_amino_acids", ignoredResidues]) 
         
         # hetatm included
         if self.ignoreHetatm:
@@ -223,17 +269,19 @@ class CarbonaraSamplingSequence(EMProtocol):
             args.extend(["--device", "cpu"])
         else:
             args.extend(["--device", "cuda"])
-            os.environ["CUDA_VISIBLE_DEVICES"] = self.getGpuList()[0]  # selected GPU
-            print("I'm using GPU " + self.getGpuList()[0])
+            os.environ["CUDA_VISIBLE_DEVICES"] = ("%s" % self.getGpuList()[0])  # selected GPU
+            print("I'm using GPU " + ("%s" % self.getGpuList()[0]))
 
         # pdb_filepath
-        args.extend([self.inputStructure])
+        args.extend([self.atomStructName])
 
         # output_dir
-        args.extend([self._getExtraPath()])
+        args.extend([os.path.abspath(self._getExtraPath())])
+
+        args_str = ' '.join(args)
 
         # Call carbonara:
-        self.runJob(Plugin.getCarbonaraCmd(), args)
+        self.runJob(Plugin.getCarbonaraCmd(), args_str)
 
         
     def createOutputStep(self):
@@ -245,7 +293,8 @@ class CarbonaraSamplingSequence(EMProtocol):
             if filename.endswith(".fasta"):
                 path = os.path.join(directory, filename)
                 seq = Sequence()
-                seq.setSeqNames(path)
+                print("dir(seq): ", dir(seq))
+                seq.setName(path)
                 keyword = filename.split(".fasta")[0]
                 kwargs = {keyword: seq}
                 self._defineOutputs(**kwargs)
