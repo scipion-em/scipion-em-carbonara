@@ -30,6 +30,7 @@ import sys
 import pwem
 import pyworkflow.utils as pwutils
 from scipion.install.funcs import VOID_TGZ
+from pwem.constants import MAXIT
 
 from .constants import (CARBONARA_ENV_ACTIVATION, conda_env,
                         GIT_CLONE_CMD, CARBONARA_PROGRAM)
@@ -48,7 +49,9 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def getCarbonaraCmd(cls):
-        cmd = cls.getVar(CARBONARA_ENV_ACTIVATION)
+        cmd = cls.getCondaActivationCmd()
+        cmd += f" "
+        cmd += cls.getVar(CARBONARA_ENV_ACTIVATION)
         cmd += f" && {CARBONARA_PROGRAM} "
         return cmd
 
