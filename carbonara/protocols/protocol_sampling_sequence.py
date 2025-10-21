@@ -293,7 +293,6 @@ class CarbonaraSamplingSequence(EMProtocol):
             if filename.endswith(".fasta"):
                 path = os.path.join(directory, filename)
                 seq = Sequence()
-                print("dir(seq): ", dir(seq))
                 seq.setName(path)
                 keyword = filename.split(".fasta")[0]
                 kwargs = {keyword: seq}
