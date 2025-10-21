@@ -1,0 +1,81 @@
+# -*- coding: utf-8 -*-
+# **************************************************************************
+# *
+# * Authors:     Marta Martinez (mmmtnez@cnb.csic.es)
+# *              Roberto Marabini (roberto@cnb.csic.es)
+# *
+# * National Center for Biotechnology (CNB-CSIC)
+# *
+# * This program is free software; you can redistribute it and/or modify
+# * it under the terms of the GNU General Public License as published by
+# * the Free Software Foundation; either version 2 of the License, or
+# * (at your option) any later version.
+# *
+# * This program is distributed in the hope that it will be useful,
+# * but WITHOUT ANY WARRANTY; without even the implied warranty of
+# * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# * GNU General Public License for more details.
+# *
+# * You should have received a copy of the GNU General Public License
+# * along with this program; if not, write to the Free Software
+# * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+# * 02111-1307  USA
+# *
+# *  All comments concerning this program package may be sent to the
+# *  e-mail address 'scipion@cnb.csic.es'
+# *
+# **************************************************************************
+
+from ..protocols import CarbonaraSamplingSequence
+from pyworkflow.tests import BaseTest, setupTestProject
+from pwem.protocols.protocol_import import ProtImportPdb, \
+    ProtImportVolumes
+import os.path
+
+class TestImportBase(BaseTest):
+    @classmethod
+    def setUpClass(cls):
+        setupTestProject(cls)
+
+class TestImportData(TestImportBase):
+    """ Import atomic structure (PDBx/mmCIF file)
+    """
+    pdbHaemoglobin = "5ni1"  # Haemoglobin
+    
+    def _importStructure1(self):
+        """Import the structure pdbHaemoglobin (Protein structure)"""
+        args = {'inputPdbData': ProtImportPdb.IMPORT_FROM_FILES,
+                'pdbFile': self.dsModBuild.getFile(
+                    'PDBx_mmCIF/5ni1.cif'),
+                }
+        protImportPDB = self.newProtocol(ProtImportPdb, **args)
+        protImportPDB.setObjLabel('import structure\n Haemoglobin')
+        self.launchProtocol(protImportPDB)
+        Haemoglobin_PDB = protImportPDB.outputPdb
+        return Haemoglobin_PDB
+    
+class TestCarbonaraSamplingSequence(TestImportData):
+    """ Test the protocol of Carbonara protocol Sampling Sequence
+    """
+
+    def testCarbonara1(self):
+        """ This test checks that carbonara runs with default parameters
+            except number of sequences (3)
+        """
+        print("Run Carbonara Sampling Sequence protocol from imported pdb file " \
+              "with default parameters and 3 predicted sequences")
+
+        # import PDB
+        Haemoglobin_PDB = self._importStructure1()
+        self.assertTrue(Haemoglobin_PDB.getFileName())
+        
+        args = {'atomStructStructure': Haemoglobin_PDB,
+                'numSamples': 3
+                }
+
+        protCarbonaraSamplingSequence = self.newProtocol(CarbonaraSamplingSequence, **args)
+        protCarbonaraSamplingSequence.setObjLabel('Haemoglobin\n'
+                                   '3 seqs default params\n')
+        self.launchProtocol(protCarbonaraSamplingSequence)
+
+        self.assertTrue(protCarbonaraSamplingSequence.getFileName())
