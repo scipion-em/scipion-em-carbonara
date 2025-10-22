@@ -26,9 +26,7 @@
 # *
 # **************************************************************************
 
-from enum import Enum
-import os 
-import subprocess
+import os
 from pwem.objects import AtomStruct, Sequence, SetOfSequences
 from pyworkflow.constants import BETA
 from pyworkflow.protocol import (params, 
@@ -102,7 +100,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                       help="Select 'Yes' if you want to exclude from sampling any specific chain "
                             "(one or more) of the atom structure.\n")
         
-        form.addParam('selectStructureChains', params.StringParam, 
+        form.addParam('selectStructureChains', params.StringParam,
                       expertLevel=LEVEL_ADVANCED, 
                       condition=('selectChains==True'),
                       default=None, important=True,
@@ -110,7 +108,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                       help='"Use the wizard on the right to select the list of known chains for\n'
                            ' which no new sequences will be predicted. Moreover, the sequence\n'
                            ' information of the selected chains will be used as prior information\n'
-                           ' for the prediction. "')   
+                           ' for the prediction. "')
                     # Associate wizard to this param
 
         form.addParam('selectKnoumResidues', params.BooleanParam,
@@ -129,7 +127,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' which no new sequences will be predicted. Moreover, the sequence\n'
                            ' information of the selected positions will be used as prior\n'
                            ' information for the prediction. "')  
-                    # Associate wizard to this parm   
+        # Associate wizard to this parm   
                       
         form.addParam('selectUnknoumResidues', params.BooleanParam,
                       expertLevel=LEVEL_ADVANCED,
@@ -283,15 +281,15 @@ class CarbonaraSamplingSequence(EMProtocol):
         # Call carbonara:
         self.runJob(Plugin.getCarbonaraCmd(), args_str)
 
-        
     def createOutputStep(self):
         """Register sequences generated"""
         # check if .fasta files exist before registering
         directory = self._getExtraPath()
 
+        # TODO: save data as a set of sequences?
         for filename in sorted(os.listdir(directory)):
             if filename.endswith(".fasta"):
-                path = os.path.join(directory, filename)
+                path = self._getExtraPath(filename)
                 seq = Sequence()
                 seq.setName(path)
                 keyword = filename.split(".fasta")[0]

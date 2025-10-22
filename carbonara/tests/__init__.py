@@ -25,5 +25,5 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-from .test_protocol_carbonara_sampling_sequence import (\
+from .test_protocol_carbonara_sampling_sequence import (
     TestImportBase, TestImportData, TestCarbonaraSamplingSequence)

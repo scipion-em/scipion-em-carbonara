@@ -27,13 +27,13 @@
 # **************************************************************************
 
 from ..protocols import CarbonaraSamplingSequence
-from pwem.wizards import SelectChainWizard, SelectResidueWizard
+from pwem.wizards import SelectChainSWizard, SelectResidueWizard
 from pyworkflow.wizard import Wizard
 from pyworkflow.gui import ListTreeProviderString, dialog
 from pyworkflow.object import String
 
 
-SelectChainWizard().addTarget(protocol=CarbonaraSamplingSequence,
+SelectChainSWizard().addTarget(protocol=CarbonaraSamplingSequence,
                               targets=['selectStructureChains'],
                               inputs=['atomStruct'],
                               outputs=['selectStructureChains'])
