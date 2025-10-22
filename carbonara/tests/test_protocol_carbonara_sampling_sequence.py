@@ -28,34 +28,32 @@
 
 from ..protocols import CarbonaraSamplingSequence
 from pyworkflow.tests import BaseTest, setupTestProject
-from pwem.protocols.protocol_import import ProtImportPdb, \
-    ProtImportVolumes
-import os.path
+from pwem.protocols.protocol_import import (ProtImportPdb,
+     ProtImportVolumes)
+
 
 class TestImportBase(BaseTest):
     @classmethod
     def setUpClass(cls):
         setupTestProject(cls)
 
+
 class TestImportData(TestImportBase):
     """ Import atomic structure (PDBx/mmCIF file)
     """
-    pdbHaemoglobin = "5ni1"  # Haemoglobin
-    
-    def _importStructure1(self):
-        """Import the structure pdbHaemoglobin (Protein structure)"""
-        args = {'inputPdbData': ProtImportPdb.IMPORT_FROM_FILES,
-                'pdbFile': self.dsModBuild.getFile(
-                    'PDBx_mmCIF/5ni1.cif'),
+    def _importStructurePDB(self, pdbID="5ni1"):  # Haemoglobine
+        args = {'inputPdbData': ProtImportPdb.IMPORT_FROM_ID,
+                'pdbId': pdbID
                 }
         protImportPDB = self.newProtocol(ProtImportPdb, **args)
-        protImportPDB.setObjLabel('import structure\n Haemoglobin')
+        protImportPDB.setObjLabel('import structure\n %s' % pdbID)
         self.launchProtocol(protImportPDB)
-        Haemoglobin_PDB = protImportPDB.outputPdb
-        return Haemoglobin_PDB
-    
+        self.assertTrue(protImportPDB.outputPdb.getFileName())
+        return protImportPDB.outputPdb
+
+
 class TestCarbonaraSamplingSequence(TestImportData):
-    """ Test the protocol of Carbonara protocol Sampling Sequence
+    """ Test Carbonara protocol Sampling Sequence
     """
 
     def testCarbonara1(self):
@@ -66,16 +64,20 @@ class TestCarbonaraSamplingSequence(TestImportData):
               "with default parameters and 3 predicted sequences")
 
         # import PDB
-        Haemoglobin_PDB = self._importStructure1()
+        Haemoglobin_PDB = self._importStructurePDB()
         self.assertTrue(Haemoglobin_PDB.getFileName())
-        
-        args = {'atomStructStructure': Haemoglobin_PDB,
+
+        args = {'atomStruct': Haemoglobin_PDB,
                 'numSamples': 3
                 }
 
-        protCarbonaraSamplingSequence = self.newProtocol(CarbonaraSamplingSequence, **args)
-        protCarbonaraSamplingSequence.setObjLabel('Haemoglobin\n'
-                                   '3 seqs default params\n')
+        protCarbonaraSamplingSequence = self.newProtocol(
+            CarbonaraSamplingSequence, **args)
+        protCarbonaraSamplingSequence.setObjLabel(
+            'Haemoglobin 3 seqs default params')
         self.launchProtocol(protCarbonaraSamplingSequence)
-
-        self.assertTrue(protCarbonaraSamplingSequence.getFileName())
+        outPuts = ['5ni1_0', '5ni1_1', '5ni1_2']
+        for output, ProtOutput in zip(outPuts, 
+                                      protCarbonaraSamplingSequence.
+                                      iterOutputAttributes()):
+            self.assertTrue(str(ProtOutput), output)
