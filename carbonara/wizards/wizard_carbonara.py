@@ -39,6 +39,11 @@ SelectChainSWizard().addTarget(protocol=CarbonaraSamplingSequence,
                               outputs=['selectStructureChains'])
 
 SelectResidueWizard().addTarget(protocol=CarbonaraSamplingSequence,
-                                 targets=['selectKnownResidues', 'selectUnknownResidues', ],
+                                 targets=['selectKnownStructureResidues', 'selectUnknownStructureResidues'],
                                  inputs=['atomStruct'],
-                                 outputs=['selectKnownResidues', 'selectUnknownResidues'])
+                                 outputs=['selectKnownStructureResidues', 'selectUnknownStructureResidues'])
+
+#SelectResidueWizard().addTarget(protocol=CarbonaraSamplingSequence,
+#                                targets=['selectIgnoredAminoacids'],
+#                                 inputs=AMINO_LIST,
+#                                 outputs=['selectIgnoredAminoacids'])
