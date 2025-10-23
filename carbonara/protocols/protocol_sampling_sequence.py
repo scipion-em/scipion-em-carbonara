@@ -27,6 +27,7 @@
 # **************************************************************************
 
 import os
+import glob
 from pwem.objects import AtomStruct, Sequence, SetOfSequences
 from pyworkflow.constants import BETA
 from pyworkflow.protocol import (params, 
@@ -37,7 +38,12 @@ from pyworkflow.utils import Message
 from pyworkflow.object import Integer
 from pwem.protocols import EMProtocol
 from pwem.convert.atom_struct import AtomicStructHandler, fromCIFToPDB
-
+from ..constants import CLUSTALO
+from pwem.convert.sequence import alignClustalSequences
+from Bio import SeqIO, AlignIO
+from Bio.PDB import PDBParser, is_aa
+from Bio.SeqUtils import seq1
+from collections import Counter
 
 from carbonara import Plugin
 
@@ -52,6 +58,7 @@ class CarbonaraSamplingSequence(EMProtocol):
 
 # -------------------------- DEFINE param functions ----------------------
     METHOD_OPTIONS=['max', 'sampled']
+    AMINO_LIST=["A","R","N","D","C","Q","E","G","H","I","L","K","M","F","P","S","T","W","Y","V"]
 
     def _defineParams(self, form):
         """ Defining the input parameters that will be used.
@@ -73,7 +80,6 @@ class CarbonaraSamplingSequence(EMProtocol):
                       help='Number of sequences to generate.')
                       
         form.addParam('imprintRadio', params.FloatParam,
-                      validators=[params.Positive],
                       default=0.5,
                       label='Ratio of prior information', important=True,
                       help='Ratio of sequence imprint for sampling'
@@ -157,7 +163,7 @@ class CarbonaraSamplingSequence(EMProtocol):
         
         form.addParam('selectIgnoredAminoacids', params.StringParam, 
                       expertLevel=LEVEL_ADVANCED, 
-                      choices=["A","R","N","D","C","Q","E","G","H","I","L","K","M","F","P","S","T","W","Y","V"], 
+                      choices=self.AMINO_LIST, 
                       condition=('ignoreAminoacids==True'),
                       default=None, important=True,
                       label='Ignored aminoacids',
@@ -273,28 +279,45 @@ class CarbonaraSamplingSequence(EMProtocol):
         # pdb_filepath
         args.extend([self.atomStructName])
 
-        # output_dir
-        args.extend([os.path.abspath(self._getExtraPath())])
+        # output_dir, folder called carbonara_results
+        self.dir_path = os.path.abspath(self._getExtraPath())
+        subdirectory = "carbonara_results"
+        self.subdir_path = os.path.join(self.dir_path, subdirectory)
+        args.extend([self.subdir_path])
 
         args_str = ' '.join(args)
 
         # Call carbonara:
         self.runJob(Plugin.getCarbonaraCmd(), args_str)
 
+        # Align output sequences and save the alignment
+        self.clustalOAlignment()
+
+        # Summary of alignment with consensus
+        summ_align_file = os.path.abspath(self._getExtraPath("clustal_summary.aln")) 
+        self.filter_file_lines(self.outFile, summ_align_file)
+
+        # Summarize sequence scores in a file
+        output_scores_file = os.path.join(self.dir_path, "sorted_scores.txt")
+        self.extract_scores_from_fasta(self.subdir_path, output_scores_file)
+
+
     def createOutputStep(self):
         """Register sequences generated"""
         # check if .fasta files exist before registering
-        directory = self._getExtraPath()
+        # in a folder call sequences
 
         # TODO: save data as a set of sequences?
-        for filename in sorted(os.listdir(directory)):
+        for filename in sorted(os.listdir(self.subdir_path)):
             if filename.endswith(".fasta"):
-                path = self._getExtraPath(filename)
+                path = os.path.join(self.subdir_path, filename)
                 seq = Sequence()
                 seq.setName(path)
                 keyword = filename.split(".fasta")[0]
                 kwargs = {keyword: seq}
                 self._defineOutputs(**kwargs)
+
+        
 
     # --------------------------- INFO functions ----------------------------
     def _validate(self):
@@ -305,21 +328,173 @@ class CarbonaraSamplingSequence(EMProtocol):
         if len(gpus) > 1:
             errors.append('Only one GPU can be used.')
 
+        # Check that CLUSTALO program exists
+        if not (self.is_tool(CLUSTALO)):
+            errors.append("Clustal-omega program missing.\n "
+                          "You need it to run this program.\n"
+                          "Please install Clustal-omega:\n"
+                          "     sudo apt-get install clustalo\n")
+
         return errors
 
     def _summary(self):
-        # Think on how to update this summary with created PDB
+
         summary = []
         if self.getOutputsSize() > 0:
-            directory = self._getExtraPath()
+            dir_path = os.path.abspath(self._getExtraPath())
+            subdirectory = "carbonara_results"
+            subdir_path = os.path.join(dir_path, subdirectory)
             counter = 0
-            for filename in sorted(os.listdir(directory)):
+            for filename in sorted(os.listdir(subdir_path)):
                 if filename.endswith(".fasta"):
                     counter += 1       
-            summary.append("%s sequence predicted" % counter)
+            summary.append("%s sequences predicted" % counter)
+            summary.append("" )
+            summary.append("Alignment generated with Clustal Omega and saved in:" )
+            clustal_aln_path = os.path.join(dir_path, "clustal.aln")
+            summary.append(" %s " % clustal_aln_path)
+            summary.append("" )
+
+            # This part only makes sense if a monospaced font like courier, consolas, monaco, lucida console
+            # otherwise I have to modify it to show only the consensus line
+            clustal_aln_summmary_path = os.path.join(dir_path, "clustal_summary.aln")
+            try:
+                with open(clustal_aln_summmary_path, "r") as f:
+                    content = f.read()
+                summary.append(content )
+            except FileNotFoundError:
+                summary.append(f"File not found: {clustal_aln_summmary_path}")
+            except Exception as e:
+                summary.append(f"Error reading file: {e}")
+            
         else:
             summary.append(Message.TEXT_NO_OUTPUT_FILES)
         return summary
     
     def _citations(self):
         return ['Krapp2024-dw']
+    
+    def clustalOAlignment(self):
+
+        # generate file with fasta sequences
+        inFile = self.merge_fasta_to_align(self.subdir_path) 
+
+        # generate output file and run clustal
+        self.outFile = os.path.abspath(self._getExtraPath("clustal.aln")) 
+        cline = alignClustalSequences(inFile, self.outFile)  
+
+        # new clustalo command line
+        # clustalo -i input.fasta -o aligned.aln --outfmt=clustal --force 
+        args = ' --outfmt=clustal --force '
+        # cline is a biophythom object let us
+        # convert it to a str before using it in scipion
+        # TODO: Solve str bug in chimera modeller
+        self.runJob(str(cline), args)
+ 
+        
+    def merge_fasta_to_align(self, folder_path):
+        inFile =  os.path.abspath(self._getExtraPath("merged.align")) 
+        self.wholeSequence = self.extract_protein_sequences(self.atomStructName)
+        with open(inFile, 'w') as out_f:
+
+            # include starting sequence as first sequence
+            name = os.path.basename(
+                    os.path.splitext(self.atomStructName)[0])
+            out_f.write(f'>{name}\n{str(self.wholeSequence)}\n')
+
+            #include all the sampled sequences next
+            for filename in os.listdir(folder_path):
+                if filename.endswith('.fasta'):
+                    filepath = os.path.join(folder_path, filename)
+                    name = os.path.splitext(filename)[0]
+                    for record in SeqIO.parse(filepath, 'fasta'):
+                        out_f.write(f'>{name}\n{str(record.seq)}\n')
+        return inFile
+
+    def is_tool(self, name):
+        """Check whether `name` is on PATH."""
+        from shutil import which
+        return which(name) is not None
+    
+    def extract_protein_sequences(self, pdb_file):
+        parser = PDBParser(QUIET=True)
+        structure = parser.get_structure("structure", pdb_file)
+
+        chain_sequences = []
+
+        for model in structure:
+            for chain in model:
+                residues = [res for res in chain if is_aa(res, standard=True)]
+                if residues:
+                    sequence = ''.join(seq1(res.get_resname()) for res in residues)
+                    chain_sequences.append(sequence)
+            break  # Only process the first model
+
+        return ':'.join(chain_sequences)
+    
+    def extract_scores_from_fasta(self, folder_path, output_scores_file):
+        entries = []
+
+        # Find all .fasta files in the folder
+        for filepath in glob.glob(os.path.join(folder_path, "*.fasta")):
+            filename = os.path.basename(filepath)
+            name_without_ext = os.path.splitext(filename)[0]
+
+            with open(filepath, "r") as f:
+                header = f.readline().strip()
+                if header.startswith(">"):
+                    # Extract score from header line
+                    parts = header[1:].split(",")
+                    score_part = next((p for p in parts if "score=" in p), None)
+                    if score_part:
+                        try:
+                            score = float(score_part.split("=")[1])
+                            entries.append((name_without_ext, score))
+                        except ValueError:
+                            print(f"Invalid score in {filename}")
+
+        # Sort entries by score descending
+        entries.sort(key=lambda x: x[1], reverse=True)
+
+        # Write to output file
+        with open(output_scores_file, "w") as out:
+            for name, score in entries:
+                out.write(f"{name}\t{score:.5f}\n")
+
+    def filter_file_lines(self, filepath, newfilepath):
+        first_label = None
+        filtered_lines = []
+
+        try:
+            with open(filepath, "r") as f:
+                for line in f:
+                    stripped = line.strip()
+                    # Keep header and empty lines
+                    if not stripped or stripped.startswith("CLUSTAL"):
+                        filtered_lines.append(line)
+                        continue 
+
+                    # Keep consensus lines
+                    if stripped[0] in "*:." or line.startswith(" "):
+                        filtered_lines.append(line)
+                        continue
+
+                    # Process sequence lines
+                    parts = line.rstrip().split()
+                    if len(parts) == 2:
+                        label, seq = parts
+                        if first_label is None:
+                            first_label = label
+                            filtered_lines.append(line)
+                        elif first_label and label == first_label:
+                            filtered_lines.append(line)
+                    # Skip other labels
+
+            # New file with valid lines
+            with open(newfilepath, "w") as f:
+                f.writelines(filtered_lines)
+
+        except Exception as e:
+            print(f"Error processing file: {e}")
+    
+
