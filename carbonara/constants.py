@@ -36,3 +36,5 @@ GIT_CLONE_CMD = "pip install -vv git+https://github.com/LBM-EPFL/CARBonAra.git@1
 
 repo_name = "CARBonAra"
 conda_env = "carbonara"
+
+CLUSTALO = 'clustalo'
