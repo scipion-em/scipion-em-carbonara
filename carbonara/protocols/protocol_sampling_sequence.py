@@ -393,7 +393,7 @@ class CarbonaraSamplingSequence(EMProtocol):
  
         
     def merge_fasta_to_align(self, folder_path):
-        inFile =  os.path.abspath(self._getExtraPath("merged.align")) 
+        inFile =  os.path.abspath(self._getExtraPath("merged.fasta")) 
         self.wholeSequence = self.extract_protein_sequences(self.atomStructName)
         with open(inFile, 'w') as out_f:
 
