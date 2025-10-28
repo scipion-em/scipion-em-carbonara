@@ -35,7 +35,8 @@ from pyworkflow.protocol import (params,
                                 GPU_LIST,
                                 USE_GPU)
 from pyworkflow.utils import Message
-from pyworkflow.object import Integer
+from pyworkflow.utils.path import makePath
+from pyworkflow.object import Integer, String
 from pwem.protocols import EMProtocol
 from pwem.convert.atom_struct import AtomicStructHandler, fromCIFToPDB
 from ..constants import CLUSTALO
@@ -304,20 +305,41 @@ class CarbonaraSamplingSequence(EMProtocol):
 
     def createOutputStep(self):
         """Register sequences generated"""
+
+        # setSeq = SetOfSequences()
+        # setSeq.setStore(self.mapper.store().createStore(setSeq))
+        # setSeq.setObjLabel("Output sequences")
+
+        sequences = []
+        labels = []
         # check if .fasta files exist before registering
         # in a folder call sequences
-
-        # TODO: save data as a set of sequences?
+        # create output: sequences
         for filename in sorted(os.listdir(self.subdir_path)):
             if filename.endswith(".fasta"):
                 path = os.path.join(self.subdir_path, filename)
+                sequence = self.extract_sequence_from_file(path)
+                label= os.path.splitext(filename)[0]
+
                 seq = Sequence()
-                seq.setName(path)
+                seq.setSeqName(path)
+                seq.setId(label)
+                seq.setSequence(sequence)
+                seq.setObjLabel(label)
                 keyword = filename.split(".fasta")[0]
                 kwargs = {keyword: seq}
                 self._defineOutputs(**kwargs)
 
+        # create output: setOfSequences
+                sequences.append(seq)
+                labels.append(label)
         
+        # for seq in sequences:
+        #    setSeq.append(seq)
+        
+        #setSeq.update()
+        #self._defineOutput(outputSequences=setSeq)
+   
 
     # --------------------------- INFO functions ----------------------------
     def _validate(self):
@@ -498,3 +520,12 @@ class CarbonaraSamplingSequence(EMProtocol):
             print(f"Error processing file: {e}")
     
 
+    def extract_sequence_from_file(self, filepath):
+        sequence_lines = []
+        with open(filepath, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('>'):
+                    continue  
+                sequence_lines.append(line)
+        return ''.join(sequence_lines)
