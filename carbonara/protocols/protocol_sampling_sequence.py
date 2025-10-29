@@ -306,9 +306,8 @@ class CarbonaraSamplingSequence(EMProtocol):
     def createOutputStep(self):
         """Register sequences generated"""
 
-        # setSeq = SetOfSequences()
-        # setSeq.setStore(self.mapper.store().createStore(setSeq))
-        # setSeq.setObjLabel("Output sequences")
+        setSeq = SetOfSequences()
+        outputSequences = setSeq.create(outputPath=self._getPath())
 
         sequences = []
         labels = []
@@ -334,11 +333,11 @@ class CarbonaraSamplingSequence(EMProtocol):
                 sequences.append(seq)
                 labels.append(label)
         
-        # for seq in sequences:
-        #    setSeq.append(seq)
+        for seq in sequences:
+            outputSequences.append(seq)
         
-        #setSeq.update()
-        #self._defineOutput(outputSequences=setSeq)
+        # outputSequences.update()
+        self._defineOutputs(outputSequences=outputSequences)
    
 
     # --------------------------- INFO functions ----------------------------
