@@ -28,6 +28,7 @@
 
 import os
 import glob
+import re
 from pwem.objects import AtomStruct, Sequence, SetOfSequences
 from pyworkflow.constants import BETA
 from pyworkflow.protocol import (params, 
@@ -48,6 +49,46 @@ from collections import Counter
 
 from carbonara import Plugin
 
+
+class AminoListParam(params.StringParam):
+    """ list of aminoacids parameter
+    """
+    def __init__(self, **args):
+        params.StringParam.__init__(self, **args)
+        self.addValidator(AminoListValidator())
+
+
+class AminoListValidator(params.Conditional):
+    """ Validator for class AminoListParam(params.StringParam):
+   """
+    AMINO_LIST = ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K",
+                  "M", "F", "P", "S", "T", "W", "Y", "V"]
+
+    def __init__(self, error='Incorrect format for amino acid list param'):
+        params.Conditional.__init__(self, error)
+
+    def _condition(self, value):
+        valid_pattern = re.compile(rf"^[{''.join(self.AMINO_LIST)},\s]+$")
+
+        def validate_amino_sequence(seq):
+            """Validate that the sequence contains only
+               valid amino acids, commas, or spaces."""
+            if not valid_pattern.match(seq):
+                raise ValueError(f"Invalid character found in sequence: {seq}")
+            # Extract amino acids only
+            # this line is only for testing
+            amino_acids = re.findall(rf"[{''.join(self.AMINO_LIST)}]", seq)
+            print(f"Amino acids extracted: {amino_acids}")
+            return True
+        try:
+            result = validate_amino_sequence(value)
+            print(f"Validated amino acid sequence: {result}")
+        except ValueError as e:
+            print(f"Error: {e}")
+            return False
+        return True
+
+
 class CarbonaraSamplingSequence(EMProtocol):
     """
     CARBonAra is an automatic method that generates multiple sequences
@@ -58,8 +99,8 @@ class CarbonaraSamplingSequence(EMProtocol):
     _version = ""
 
 # -------------------------- DEFINE param functions ----------------------
-    METHOD_OPTIONS=['max', 'sampled']
-    AMINO_LIST=["A","R","N","D","C","Q","E","G","H","I","L","K","M","F","P","S","T","W","Y","V"]
+    METHOD_OPTIONS = ['max', 'sampled']
+
 
     def _defineParams(self, form):
         """ Defining the input parameters that will be used.
@@ -162,9 +203,8 @@ class CarbonaraSamplingSequence(EMProtocol):
                       help="Select 'Yes' if you want to exclude from sampling any specific aminoacids "
                             "(one or more) of the atom structure.\n")
         
-        form.addParam('selectIgnoredAminoacids', params.StringParam, 
-                      expertLevel=LEVEL_ADVANCED, 
-                      choices=self.AMINO_LIST, 
+        form.addParam('selectIgnoredAminoacids', AminoListParam,
+                      expertLevel=LEVEL_ADVANCED,
                       condition=('ignoreAminoacids==True'),
                       default=None, important=True,
                       label='Ignored aminoacids',
@@ -172,7 +212,6 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' be completely ignored for the sequence sampling. The prior\n'
                            ' information and sequences generated will not contain the selected\n'
                            ' amino acids."') 
-                    # Associate wizard to this parm
                       
         form.addParam('ignoreHetatm', params.BooleanParam, default=False,
                       expertLevel=LEVEL_ADVANCED,
@@ -212,7 +251,7 @@ class CarbonaraSamplingSequence(EMProtocol):
 
         fileName = self.atomStruct.get().getFileName()
         self.atomStructName = os.path.abspath(fileName)
-        
+
         # convert CIF to PDB file
         if self.atomStructName.endswith('.cif'):
             atomStructReName = os.path.abspath(
@@ -302,7 +341,6 @@ class CarbonaraSamplingSequence(EMProtocol):
         output_scores_file = os.path.join(self.dir_path, "sorted_scores.txt")
         self.extract_scores_from_fasta(self.subdir_path, output_scores_file)
 
-
     def createOutputStep(self):
         """Register sequences generated"""
 
@@ -368,21 +406,30 @@ class CarbonaraSamplingSequence(EMProtocol):
             counter = 0
             for filename in sorted(os.listdir(subdir_path)):
                 if filename.endswith(".fasta"):
-                    counter += 1       
-            summary.append("%s sequences predicted" % counter)
-            summary.append("" )
-            summary.append("Alignment generated with Clustal Omega and saved in:" )
+                    counter += 1
+            summary.append("%s *sequences* predicted " % counter)
+            summary.append("")
+            summary.append("Alignment generated with Clustal Omega and saved in:")
+            
             clustal_aln_path = os.path.join(dir_path, "clustal.aln")
             summary.append(" %s " % clustal_aln_path)
-            summary.append("" )
+            summary.append("")
 
             # This part only makes sense if a monospaced font like courier, consolas, monaco, lucida console
             # otherwise I have to modify it to show only the consensus line
             clustal_aln_summmary_path = os.path.join(dir_path, "clustal_summary.aln")
             try:
                 with open(clustal_aln_summmary_path, "r") as f:
-                    content = f.read()
-                summary.append(content )
+                    for line in f:
+                        if line == "\n":
+                            continue
+                        summary.append("'''" + line.rstrip('\n') + "'''\n")
+                # pattern = r"'''(?P<fixed>.*?)'''"
+                # matches = re.findall(pattern, text, re.DOTALL)
+                # for i, block in enumerate(matches, start=1):
+                #     print(f"--- Block {i} ---")
+                #     print(block.strip())
+                #     print()
             except FileNotFoundError:
                 summary.append(f"File not found: {clustal_aln_summmary_path}")
             except Exception as e:
