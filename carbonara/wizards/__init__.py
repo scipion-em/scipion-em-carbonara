@@ -25,4 +25,4 @@
 # *
 # **************************************************************************
 
-from .wizard_carbonara import CarbonaraSamplingSequenceWizard
+from .wizard_carbonara import * # CarbonaraSamplingSequenceWizard
