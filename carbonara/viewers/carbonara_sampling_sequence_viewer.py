@@ -83,16 +83,19 @@ class CarbonaraViewer(ProtocolViewer):
             openTextFileEditor(seqAndScoreFile)
 
     def _showSequences(self, obj, **args):
+        self.dir_path = os.path.abspath(self.protocol._getExtraPath())
         fastaFile = os.path.join(self.dir_path, "merged.fasta")
         if os.path.exists(fastaFile):
             openTextFileEditor(fastaFile)
 
-    def _showAlignment(self, obj, **args):      
+    def _showAlignment(self, obj, **args): 
+        self.dir_path = os.path.abspath(self.protocol._getExtraPath())     
         clustalAlignFile = os.path.join(self.dir_path, "clustal.aln")
         if os.path.exists(clustalAlignFile):
             openTextFileEditor(clustalAlignFile)
 
-    def _showAlignmentSummary(self, obj, **args):  
+    def _showAlignmentSummary(self, obj, **args): 
+        self.dir_path = os.path.abspath(self.protocol._getExtraPath())
         clustalAlignFileSummaryFile = os.path.join(self.dir_path, "clustal_summary.aln")
         if os.path.exists(clustalAlignFileSummaryFile):
             openTextFileEditor(clustalAlignFileSummaryFile)
