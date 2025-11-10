@@ -75,7 +75,7 @@ class TestCarbonaraSamplingSequence(TestImportData):
         protCarbonaraSamplingSequence = self.newProtocol(
             CarbonaraSamplingSequence, **args)
         protCarbonaraSamplingSequence.setObjLabel(
-            'carbonara 3 seqs default params')
+            'carbonara default params')
         self.launchProtocol(protCarbonaraSamplingSequence)
         outPuts = ['5ni1_0', '5ni1_1', '5ni1_2']
 
@@ -99,7 +99,7 @@ class TestCarbonaraSamplingSequence(TestImportData):
         protCarbonaraSamplingSequence = self.newProtocol(
             CarbonaraSamplingSequence, **args)
         protCarbonaraSamplingSequence.setObjLabel(
-            'carbonara 3 seqs excluded chain B')
+            'carbonara excluded chain B')
         self.launchProtocol(protCarbonaraSamplingSequence)
         outPuts = ['5ni1_0', '5ni1_1', '5ni1_2']
         for output, ProtOutput in zip(outPuts, 
@@ -124,7 +124,7 @@ class TestCarbonaraSamplingSequence(TestImportData):
         protCarbonaraSamplingSequence = self.newProtocol(
             CarbonaraSamplingSequence, **args)
         protCarbonaraSamplingSequence.setObjLabel(
-            'carbonara 3 seqs excluded chains B, D')
+            'carbonara excluded chains B, D')
         self.launchProtocol(protCarbonaraSamplingSequence)
         outPuts = ['5ni1_0', '5ni1_1', '5ni1_2']
         for output, ProtOutput in zip(outPuts, 
@@ -171,7 +171,7 @@ class TestCarbonaraSamplingSequence(TestImportData):
         protCarbonaraSamplingSequence = self.newProtocol(
             CarbonaraSamplingSequence, **args)
         protCarbonaraSamplingSequence.setObjLabel(
-            'carbonara 3 seqs inp_ratio 0 sampled')
+            'carbonara inp_ratio 0 sampled')
         self.launchProtocol(protCarbonaraSamplingSequence)
 
         outPuts = []
@@ -192,7 +192,7 @@ class TestCarbonaraSamplingSequence(TestImportData):
         protCarbonaraSamplingSequence = self.newProtocol(
             CarbonaraSamplingSequence, **args)
         protCarbonaraSamplingSequence.setObjLabel(
-            'carbonara 3 seqs inp_ratio 1 sampled')
+            'carbonara inp_ratio 1 sampled')
         self.launchProtocol(protCarbonaraSamplingSequence)
         
         outPuts = []
@@ -214,7 +214,7 @@ class TestCarbonaraSamplingSequence(TestImportData):
         protCarbonaraSamplingSequence = self.newProtocol(
             CarbonaraSamplingSequence, **args)
         protCarbonaraSamplingSequence.setObjLabel(
-            'carbonara 3 seqs inp_ratio 0 max')
+            'carbonara inp_ratio 0 max')
         self.launchProtocol(protCarbonaraSamplingSequence)
 
         outPuts = []
@@ -236,7 +236,7 @@ class TestCarbonaraSamplingSequence(TestImportData):
         protCarbonaraSamplingSequence = self.newProtocol(
             CarbonaraSamplingSequence, **args)
         protCarbonaraSamplingSequence.setObjLabel(
-            'carbonara 3 seqs inp_ratio 1 max')
+            'carbonara inp_ratio 1 max')
         self.launchProtocol(protCarbonaraSamplingSequence)
         
         outPuts = []
@@ -249,3 +249,50 @@ class TestCarbonaraSamplingSequence(TestImportData):
                                       iterOutputAttributes()):
             self.assertTrue(str(ProtOutput), output)
 
+        # run carbonara 3 seq, inprint ratio 1, sampling method samlpled, ignored aminoacid Cys
+        args = {'atomStruct': PDB_output,
+                'numSamples': 3,
+                'imprintRadio' : 1,
+                'bSampled' : 1,
+                'ignoreAminoacids' : True,
+                'selectIgnoredAminoacids' : "C"
+                }
+        protCarbonaraSamplingSequence = self.newProtocol(
+            CarbonaraSamplingSequence, **args)
+        protCarbonaraSamplingSequence.setObjLabel(
+            'carbonara inp_ratio 1 sampled C ignored')
+        self.launchProtocol(protCarbonaraSamplingSequence)
+        
+        outPuts = []
+        outPuts.append(PDB_output.getFileName() + "_0")
+        outPuts.append(PDB_output.getFileName() + "_1")
+        outPuts.append(PDB_output.getFileName() + "_2")
+
+        for output, ProtOutput in zip(outPuts, 
+                                      protCarbonaraSamplingSequence.
+                                      iterOutputAttributes()):
+            self.assertTrue(str(ProtOutput), output)
+
+        # run carbonara 3 seq, inprint ratio 1, sampling method samlpled, ignored aminoacid Cys Trp
+        args = {'atomStruct': PDB_output,
+                'numSamples': 3,
+                'imprintRadio' : 1,
+                'bSampled' : 1,
+                'ignoreAminoacids' : True,
+                'selectIgnoredAminoacids' : "C, W"
+                }
+        protCarbonaraSamplingSequence = self.newProtocol(
+            CarbonaraSamplingSequence, **args)
+        protCarbonaraSamplingSequence.setObjLabel(
+            'carbonara inp_ratio 1 sampled C,W ignored')
+        self.launchProtocol(protCarbonaraSamplingSequence)
+        
+        outPuts = []
+        outPuts.append(PDB_output.getFileName() + "_0")
+        outPuts.append(PDB_output.getFileName() + "_1")
+        outPuts.append(PDB_output.getFileName() + "_2")
+
+        for output, ProtOutput in zip(outPuts, 
+                                      protCarbonaraSamplingSequence.
+                                      iterOutputAttributes()):
+            self.assertTrue(str(ProtOutput), output)
