@@ -42,7 +42,7 @@ OR through the plugin manager GUI by launching Scipion and following **Configura
 - **Configuration variables**
 
 The installation of CARBonAra within Scipion automatically defines the variable `CARBONARA_ENV_ACTIVATION` for specifying
-how to activate the conda environment required to run CARBonAra and wil be added to the final carbonara command. 
+how to activate the conda environment required to run the final CARBonAra command. 
 
 .. code-block::
 
