@@ -2,10 +2,10 @@
 CARBonAra Scipion plugin
 =========================
 
-This plugin allows to use run **CARBonAra** commands within the **Scipion** framework.
+This plugin allows to run **CARBonAra** commands within the **Scipion** framework.
 
 CARBonAra allows protein sequence designing based on structure atomic coordinates.
-Since this method takes into account the context in sequence generation, it is particularly helpful to design proteins
+Since this method takes into account the context to perform sequence generation, it is particularly helpful to design proteins
 embedded in molecular environments that include non-protein entities such as nucleic acids
 (See `<https://github.com/LBM-EPFL/CARBonAra/>`_  for details and features).
 
@@ -27,11 +27,8 @@ Instructions to install this plugin (2 options):
 
 .. code-block:: 
 
-      scipion3 installp -p scipion-em-carbonara
-      
       cd scipion-em-carbonara
-      rm -rf .git
-      git init
+      scipion3 installp -p scipion-em-carbonara
       
 OR through the plugin manager GUI by launching Scipion and following **Configuration** >> **Plugins**
       
@@ -40,46 +37,34 @@ OR through the plugin manager GUI by launching Scipion and following **Configura
 .. code-block:: 
 
       cd scipion-em-carbonara
-    
       scipion3 installp -p path_to_scipion-em-carbonara --devel
 
-==========================
-Configuration variables
-==========================
+- **Configuration variables**
 
-There are some variables related to the CARBonAra installation. If you have installed
-CARBonAra within Scipion, you may define `CARBONARA_ENV_ACTIVATION` for specifying
-how to activate the environment. This variable with be used together with the general
-conda activation to generate the final carbonara command. For example:
+The installation of CARBonAra within Scipion automatically defines the variable `CARBONARA_ENV_ACTIVATION` for specifying
+how to activate the conda environment required to run the final CARBonAra command. 
 
 .. code-block::
 
     CARBONARA_ENV_ACTIVATION = conda activate carbonara
-
-If this variable is not defined, a default value will be provided that will work if the
-latest version is installed.
     
 - **Binary files**
 
-(Cambiar esto para Carbonara)Chimera binaries could be installed automatically with the plugin after accepting ChimeraX licence terms,
-but you can also link an existing installation. Default installation path assumed is *software/em/chimerax-1.0,
-if you want to change it, set *CHIMERA_HOME* in *scipion.conf* file to the folder where ChimeraX is installed
-or link your chimerax folder to *software/em/chimerax-1.0*.
+The carbonara executable for Scipion will be automatically installed in your folder miniconda/envs/carbonara/bin.
 
-- **Tests**
+======
+Tests
+======
+Tested with the first published Carbonara version. To check the installation, simply run the following Scipion test:
 
-Tested with Carbonara version: XXXXX
+.. code-block:: 
 
-To check the installation, simply run the following Scipion tests: 
-
-- **Supported versions of CARBonAra**
-
-XX,
-
+      scipion tests carbonara.tests.test_protocol_carbonara_sampling_sequence
 
 ==========
 Protocols
 ==========
+* protocol_sampling_sequence: Automatic method to generate multiple sequences able to fold in a certain structural configuration.
 
 =========
 Examples
