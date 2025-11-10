@@ -158,7 +158,8 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' information of the selected chains will be used as prior information\n'
                            ' for the prediction. "')
                     # Associate wizard to this param
-
+        '''
+        TODO: Restore these parameters when they work properly in the carbonara method
         form.addParam('selectKnoumResidues', params.BooleanParam,
                       expertLevel=LEVEL_ADVANCED,
                       label="Exclude any RESIDUES from sampling?",
@@ -176,8 +177,8 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' information of the selected positions will be used as prior\n'
                            ' information for the prediction. "')  
         # Associate wizard to this parm   
-                      
-        form.addParam('selectUnknoumResidues', params.BooleanParam,
+                     
+        form.addParam('selectUnknounResidues', params.BooleanParam,
                       expertLevel=LEVEL_ADVANCED,
                       label="Select specific RESIDUES for sampling?",
                       default=False,
@@ -186,7 +187,7 @@ class CarbonaraSamplingSequence(EMProtocol):
         
         form.addParam('selectUnknownStructureResidues', params.StringParam, 
                       expertLevel=LEVEL_ADVANCED, 
-                      condition=('selectUnknoumResidues==True'),
+                      condition=('selectUnknounResidues==True'),
                       default=None, important=True,
                       label='Included residues',
                       help='"Use the wizard on the right to select the list of resides that will\n'
@@ -195,7 +196,8 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' the rest of the sequence will be used as prior information for the\n'
                            ' prediction."')  
                     # Associate wizard to this parm  
-                      
+        '''             
+                     
         form.addParam('ignoreAminoacids', params.BooleanParam,
                       expertLevel=LEVEL_ADVANCED,
                       label="Ignore specific AMINOACIDS from sampling?",
@@ -284,17 +286,20 @@ class CarbonaraSamplingSequence(EMProtocol):
         if self.selectChains==True and self.selectStructureChains.get() is not None:
             chains = str(self.selectStructureChains.get())
             args.extend(["--known_chains", chains.replace(" ", "")])
+        '''
+        TODO: Restore this parameter when it works in carbonara method
 
-        # excluded residues
+        # excluded residues        
         if self.selectKnoumResidues==True and self.selectKnownStructureResidues.get() is not None:
             knownResidues = str(self.selectKnownResidues.get())
             args.extend(["--known_positions", knownResidues])  
-
+        
         # included residues  
-        if self.selectUnknoumResidues==True and self.selectUnknownStructureResidues.get() is not None:
+        if self.selectUnknounResidues==True and self.selectUnknownStructureResidues.get() is not None:
             unknownResidues = str(self.selectUnknownStructureResidues.get())
             args.extend(["--unknown_positions", unknownResidues]) 
-
+        '''
+            
         # ignored aminoacid
         if self.ignoreAminoacids==True and self.selectIgnoredAminoacids.get() is not None:
             ignoredResidues = str(self.selectIgnoredAminoacids.get())
