@@ -208,7 +208,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                       condition=('ignoreAminoacids==True'),
                       default=None, important=True,
                       label='Ignored aminoacids',
-                      help='"Use the wizard on the right to select the list of aminoacids that will\n'
+                      help='"Write the list of aminoacids that will\n'
                            ' be completely ignored for the sequence sampling. The prior\n'
                            ' information and sequences generated will not contain the selected\n'
                            ' amino acids."') 
@@ -283,7 +283,7 @@ class CarbonaraSamplingSequence(EMProtocol):
         # excluded chains        
         if self.selectChains==True and self.selectStructureChains.get() is not None:
             chains = str(self.selectStructureChains.get())
-            args.extend(["--known_chains", chains])
+            args.extend(["--known_chains", chains.replace(" ", "")])
 
         # excluded residues
         if self.selectKnoumResidues==True and self.selectKnownStructureResidues.get() is not None:
@@ -298,7 +298,7 @@ class CarbonaraSamplingSequence(EMProtocol):
         # ignored aminoacid
         if self.ignoreAminoacids==True and self.selectIgnoredAminoacids.get() is not None:
             ignoredResidues = str(self.selectIgnoredAminoacids.get())
-            args.extend(["--ignored_amino_acids", ignoredResidues]) 
+            args.extend(["--ignored_amino_acids", ignoredResidues.replace(" ", "")]) 
         
         # hetatm included
         if self.ignoreHetatm:
@@ -348,7 +348,7 @@ class CarbonaraSamplingSequence(EMProtocol):
         outputSequences = setSeq.create(outputPath=self._getPath())
 
         sequences = []
-        labels = []
+
         # check if .fasta files exist before registering
         # in a folder call sequences
         # create output: sequences
@@ -369,12 +369,10 @@ class CarbonaraSamplingSequence(EMProtocol):
 
         # create output: setOfSequences
                 sequences.append(seq)
-                labels.append(label)
         
         for seq in sequences:
             outputSequences.append(seq)
         
-        # outputSequences.update()
         self._defineOutputs(outputSequences=outputSequences)
    
 
@@ -415,8 +413,8 @@ class CarbonaraSamplingSequence(EMProtocol):
             summary.append(" %s " % clustal_aln_path)
             summary.append("")
 
-            # This part only makes sense if a monospaced font like courier, consolas, monaco, lucida console
-            # otherwise I have to modify it to show only the consensus line
+            # Showing ClustalOmega alignment symmary with a monospaced font 
+
             clustal_aln_summmary_path = os.path.join(dir_path, "clustal_summary.aln")
             try:
                 with open(clustal_aln_summmary_path, "r") as f:
@@ -424,12 +422,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                         if line == "\n":
                             continue
                         summary.append("'''" + line.rstrip('\n') + "'''\n")
-                # pattern = r"'''(?P<fixed>.*?)'''"
-                # matches = re.findall(pattern, text, re.DOTALL)
-                # for i, block in enumerate(matches, start=1):
-                #     print(f"--- Block {i} ---")
-                #     print(block.strip())
-                #     print()
+
             except FileNotFoundError:
                 summary.append(f"File not found: {clustal_aln_summmary_path}")
             except Exception as e:
