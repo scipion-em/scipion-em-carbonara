@@ -3,6 +3,7 @@
 # *
 # * Authors:     Marta Martinez (mmmtnez@cnb.csic.es)
 # *              Roberto Marabini (roberto@cnb.csic.es)
+# *              Fernando A. Teixeira (fernando.meireles@epfl.ch)
 # *
 # * National Center for Biotechnology (CNB-CSIC)
 # *
@@ -353,6 +354,7 @@ class CarbonaraSamplingSequence(EMProtocol):
         outputSequences = setSeq.create(outputPath=self._getPath())
 
         sequences = []
+        seen_sequences = set() #to control sequence duplicates
 
         # check if .fasta files exist before registering
         # in a folder call sequences
@@ -363,22 +365,29 @@ class CarbonaraSamplingSequence(EMProtocol):
                 sequence = self.extract_sequence_from_file(path)
                 label= os.path.splitext(filename)[0]
 
-                seq = Sequence()
-                seq.setSeqName(path)
-                seq.setId(label)
-                seq.setSequence(sequence)
-                seq.setObjLabel(label)
-                keyword = filename.split(".fasta")[0]
-                kwargs = {keyword: seq}
-                self._defineOutputs(**kwargs)
+                if sequence not in seen_sequences:
+                    seen_sequences.add(sequence)
 
-        # create output: setOfSequences
-                sequences.append(seq)
+                    seq = Sequence()
+                    seq.setSeqName(path)
+                    seq.setId(label)
+                    seq.setSequence(sequence)
+                    seq.setObjLabel(label)
+                    keyword = filename.split(".fasta")[0]
+                    kwargs = {keyword: seq}
+                    self._defineOutputs(**kwargs)
+
+                    # create output: setOfSequences
+                    sequences.append(seq)
         
         for seq in sequences:
             outputSequences.append(seq)
         
         self._defineOutputs(outputSequences=outputSequences)
+
+        # total number of unique sequences
+        num_sequences = len(sequences)
+        print(f"Total number of unique sequences: {num_sequences}")
    
 
     # --------------------------- INFO functions ----------------------------
@@ -410,7 +419,7 @@ class CarbonaraSamplingSequence(EMProtocol):
             for filename in sorted(os.listdir(subdir_path)):
                 if filename.endswith(".fasta"):
                     counter += 1
-            summary.append("%s *sequences* predicted " % counter)
+            summary.append("%s *unique sequences* predicted " % counter)
             summary.append("")
             summary.append("Alignment generated with Clustal Omega and saved in:")
             
