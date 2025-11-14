@@ -28,7 +28,7 @@
 # **************************************************************************
 
 import os
-import glob
+import csv
 import re
 from pwem.objects import AtomStruct, Sequence, SetOfSequences
 from pyworkflow.constants import BETA
@@ -239,6 +239,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                        condition=('USE_GPU==True'),
                        label="Choose GPU ID (single one)",
                        help="GPU device to be used")
+        
 
     # --------------------------- INSERT steps functions ------------------------------
     def _insertAllSteps(self):
@@ -315,7 +316,7 @@ class CarbonaraSamplingSequence(EMProtocol):
             args.extend(["--ignore_water"])
 
         # use GPU
-        if not USE_GPU:
+        if not self.useGpu:
             args.extend(["--device", "cpu"])
         else:
             args.extend(["--device", "cuda"])
@@ -344,8 +345,8 @@ class CarbonaraSamplingSequence(EMProtocol):
         self.filter_file_lines(self.outFile, summ_align_file)
 
         # Summarize sequence scores in a file
-        output_scores_file = os.path.join(self.dir_path, "sorted_scores.txt")
-        self.extract_scores_from_fasta(self.subdir_path, output_scores_file)
+        output_scores_csv_file = os.path.join(self.dir_path, "sorted_scores.csv")
+        self.extract_scores_from_fasta(self.subdir_path, output_scores_csv_file)
 
     def createOutputStep(self):
         """Register sequences generated"""
@@ -354,7 +355,8 @@ class CarbonaraSamplingSequence(EMProtocol):
         outputSequences = setSeq.create(outputPath=self._getPath())
 
         sequences = []
-        seen_sequences = set() #to control sequence duplicates
+        # all the sampled sequences without duplicates
+        filepath_list = self.sel_files_seq_unique(self.subdir_path)
 
         # check if .fasta files exist before registering
         # in a folder call sequences
@@ -365,9 +367,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                 sequence = self.extract_sequence_from_file(path)
                 label= os.path.splitext(filename)[0]
 
-                if sequence not in seen_sequences:
-                    seen_sequences.add(sequence)
-
+                if path in filepath_list:
                     seq = Sequence()
                     seq.setSeqName(path)
                     seq.setId(label)
@@ -419,7 +419,11 @@ class CarbonaraSamplingSequence(EMProtocol):
             for filename in sorted(os.listdir(subdir_path)):
                 if filename.endswith(".fasta"):
                     counter += 1
-            summary.append("%s *unique sequences* predicted " % counter)
+            summary.append("%s *sequences* predicted " % counter)
+            summary.append("")
+            filepath_list = self.sel_files_seq_unique(subdir_path)
+            number_unique_sequences = len (filepath_list)
+            summary.append("%s *unique sequences* predicted " % number_unique_sequences)
             summary.append("")
             summary.append("Alignment generated with Clustal Omega and saved in:")
             
@@ -477,13 +481,16 @@ class CarbonaraSamplingSequence(EMProtocol):
                     os.path.splitext(self.atomStructName)[0])
             out_f.write(f'>{name}\n{str(self.wholeSequence)}\n')
 
-            #include all the sampled sequences next
+            #include all the sampled sequences next without duplicates
+            filepath_list = self.sel_files_seq_unique(folder_path)
+            
             for filename in os.listdir(folder_path):
                 if filename.endswith('.fasta'):
                     filepath = os.path.join(folder_path, filename)
-                    name = os.path.splitext(filename)[0]
-                    for record in SeqIO.parse(filepath, 'fasta'):
-                        out_f.write(f'>{name}\n{str(record.seq)}\n')
+                    if filepath in filepath_list:
+                        name = os.path.splitext(filename)[0]
+                        for record in SeqIO.parse(filepath, 'fasta'):
+                            out_f.write(f'>{name}\n{str(record.seq)}\n')
         return inFile
 
     def is_tool(self, name):
@@ -507,34 +514,43 @@ class CarbonaraSamplingSequence(EMProtocol):
 
         return ':'.join(chain_sequences)
     
-    def extract_scores_from_fasta(self, folder_path, output_scores_file):
-        entries = []
+    def extract_scores_from_fasta(self, folder_path, output_scores_csv_file):
+        """
+        Generate a CSV file with columns: file_name, sequence, score.
+        Avoids duplicate sequences and sorts entries by score (highest first).
+        """
+        rows = []
+        
+        #include all the sampled sequences without duplicates
+        filepath_list = self.sel_files_seq_unique(folder_path)
 
-        # Find all .fasta files in the folder
-        for filepath in glob.glob(os.path.join(folder_path, "*.fasta")):
-            filename = os.path.basename(filepath)
-            name_without_ext = os.path.splitext(filename)[0]
+        for filename in sorted(os.listdir(folder_path)):
+            if filename.endswith(".fasta"):
+                filepath = os.path.join(folder_path, filename)
 
-            with open(filepath, "r") as f:
-                header = f.readline().strip()
-                if header.startswith(">"):
-                    # Extract score from header line
-                    parts = header[1:].split(",")
-                    score_part = next((p for p in parts if "score=" in p), None)
-                    if score_part:
-                        try:
-                            score = float(score_part.split("=")[1])
-                            entries.append((name_without_ext, score))
-                        except ValueError:
-                            print(f"Invalid score in {filename}")
+                if filepath in filepath_list:
+                    for record in SeqIO.parse(filepath, "fasta"):
+                        seq_str = str(record.seq)
 
-        # Sort entries by score descending
-        entries.sort(key=lambda x: x[1], reverse=True)
+                        #extract score from header
+                        header = record.description
+                        score = None
+                        for part in header.split(","):
+                            if "score" in part:
+                                score = float(part.split("=")[1].strip())
+                                rows.append([filename, seq_str, score])
+                                break
 
-        # Write to output file
-        with open(output_scores_file, "w") as out:
-            for name, score in entries:
-                out.write(f"{name}\t{score:.5f}\n")
+        # sort rows by score descending
+        rows.sort(key=lambda x: x[2], reverse=True)
+        
+        # write to CSV
+        with open(output_scores_csv_file, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["file_name", "sequence", "CARBonAra score"]) # header row
+            writer.writerows(rows)
+
+        print(f"CSV file generated: {output_scores_csv_file} with {len(rows)} unique sequences")
 
     def filter_file_lines(self, filepath, newfilepath):
         first_label = None
@@ -571,7 +587,6 @@ class CarbonaraSamplingSequence(EMProtocol):
 
         except Exception as e:
             print(f"Error processing file: {e}")
-    
 
     def extract_sequence_from_file(self, filepath):
         sequence_lines = []
@@ -582,3 +597,21 @@ class CarbonaraSamplingSequence(EMProtocol):
                     continue  
                 sequence_lines.append(line)
         return ''.join(sequence_lines)
+    
+    def sel_files_seq_unique(self, folder_path):
+        # method to select CARBonAra output sequence files avoiding sequence duplicates
+        seq_unique = []
+        filepaths = []
+        for filename in sorted(os.listdir(folder_path)):
+            if filename.endswith(".fasta"):
+                filepath = os.path.join(folder_path, filename)
+
+                for record in SeqIO.parse(filepath, "fasta"):
+                    seq_str = str(record.seq)
+                    if seq_str not in seq_unique:
+                        seq_unique.append(seq_str)
+                        filepaths.append(filepath)
+
+        return filepaths
+
+
