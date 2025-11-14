@@ -296,3 +296,28 @@ class TestCarbonaraSamplingSequence(TestImportData):
                                       protCarbonaraSamplingSequence.
                                       iterOutputAttributes()):
             self.assertTrue(str(ProtOutput), output)
+
+        # run carbonara 3 seq, inprint ratio 1, sampling method samlpled, ignored aminoacid Cys Trp, cpu used
+        args = {'atomStruct': PDB_output,
+                'numSamples': 3,
+                'imprintRadio' : 1,
+                'bSampled' : 1,
+                'ignoreAminoacids' : True,
+                'selectIgnoredAminoacids' : "C, W",
+                'useGpu' : False
+                }
+        protCarbonaraSamplingSequence = self.newProtocol(
+            CarbonaraSamplingSequence, **args)
+        protCarbonaraSamplingSequence.setObjLabel(
+            'carbonara inp_ratio 1 sampled C,W ignored, cpu')
+        self.launchProtocol(protCarbonaraSamplingSequence)
+        
+        outPuts = []
+        outPuts.append(PDB_output.getFileName() + "_0")
+        outPuts.append(PDB_output.getFileName() + "_1")
+        outPuts.append(PDB_output.getFileName() + "_2")
+
+        for output, ProtOutput in zip(outPuts, 
+                                      protCarbonaraSamplingSequence.
+                                      iterOutputAttributes()):
+            self.assertTrue(str(ProtOutput), output)
