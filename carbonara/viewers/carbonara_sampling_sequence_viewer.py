@@ -26,11 +26,24 @@
 # **************************************************************************
 
 import os
+import csv
 import pyworkflow.protocol.params as params
 from ..protocols import CarbonaraSamplingSequence
 from pyworkflow.viewer import DESKTOP_TKINTER, WEB_DJANGO, ProtocolViewer
 from tkinter.messagebox import showerror
 from pyworkflow.gui.text import openTextFileEditor
+from pwem.viewers import TableView
+from tkinter import messagebox
+
+def errorWindow(tkParent, msg):
+    try:
+        # if tkRoot is null the error message may be behind
+        # other windows
+        messagebox.showerror("Error",  # bar title
+                              msg,  # message
+                              parent=tkParent)
+    except:
+        print(("Error:", msg))
 
 class CarbonaraViewer(ProtocolViewer):
     """ Visualize the output of protocol carbonara sampling sequence """
@@ -62,11 +75,43 @@ class CarbonaraViewer(ProtocolViewer):
                        label='Clustal Omega alignment summary', 
                        help='Starting sequence and ClustalOmega identity and similarity' \
                        ' symbols.')
+        
+        if self.protocol.computeAlphaFold:
+            atom_structure_complex = []
+            atom_structure_binder = []
+            dir_path = os.path.abspath(self.protocol._getExtraPath())
 
+            if self.protocol.COMPLEX == True:
+                for filename in sorted(
+                    os.listdir(self.protocol.multimer_folder_path)):
+                    if filename.endswith(".pdb") or filename.endswith(".cif"):
+                        atom_structure_complex.append(filename)
+
+                group = form.addGroup('Complex structure viewer')
+                group.addParam('displayAtomStructure', 
+                       choices=atom_structure_complex,
+                       display=params.EnumParam.DISPLAY_LIST,
+                       label='Select one complex to visualize its atom structure', 
+                       help='')
+                        
+            if self.BINDER == True and len(self.chains) == 1:
+                for filename in sorted(
+                    os.listdir(self.protocol.binder_folder_path)):
+                    if filename.endswith(".pdb") or filename.endswith(".cif"):
+                        atom_structure_binder.append(filename)
+
+                group = form.addGroup('Binder structure viewer')
+                group.addParam('displayAtomStructure', 
+                       choices=atom_structure_binder,
+                       display=params.EnumParam.DISPLAY_LIST,
+                       label='Select one binder to visualize its atom structure', 
+                       help='')
+                       
+        
 
     def _getVisualizeDict(self):
         return {
-            'displayScores': self._showScores,
+            'displayScores': self._showAllScores,
             'displaySequences': self._showSequences,
             'displayAlignment': self._showAlignment,
             'displayAlignmentSummary': self._showAlignmentSummary
@@ -74,13 +119,47 @@ class CarbonaraViewer(ProtocolViewer):
     
     # view all text files located in protocol extra folder
 
-    def _showScores(self, obj, **args):
-        self.dir_path = os.path.abspath(self.protocol._getExtraPath())
-        # subdirectory = "carbonara_results"
-        # self.subdir_path = os.path.join(self.dir_path, subdirectory)
-        seqAndScoreFile = os.path.join(self.dir_path, "sorted_scores.txt")
-        if os.path.exists(seqAndScoreFile ):
-            openTextFileEditor(seqAndScoreFile)
+    def _showScores(self, headerList, dataList, mesg, title):
+
+        if not dataList:
+            errorWindow(self.getTkRoot(), "No data available")
+            return
+
+        TableView(headerList=headerList,
+                  dataList=dataList,
+                  mesg=mesg,
+                  title=title,
+                  height=len(dataList), width=250, padding=40)
+
+    def _showAllScores(self, e=None):
+        dir_path = os.path.abspath(self.protocol._getExtraPath())
+        csvFile = os.path.join(dir_path, "sorted_scores.csv")
+
+        headers = []
+        dataList = []
+        
+        with open(csvFile, newline="", encoding='utf-8') as csvF:
+            csvReader = csv.reader(csvF)
+            headers = next(csvReader)
+        
+            # remove sequence column to simplify the table output
+            if "sequence" in headers:
+                idx = headers.index("sequence")
+                headers.pop(idx)
+
+                dataList = []
+                for row in csvReader:
+                    row.pop(idx)
+                    dataList.append(row)
+            else:
+                dataList = list(csvReader)
+
+        self.headerList = headers
+        self.dataList = dataList  
+
+        mesg = ""
+        title = "Table of CARBonAra and AlphaFold scores"
+        self._showScores(headers, dataList, mesg, title)
 
     def _showSequences(self, obj, **args):
         self.dir_path = os.path.abspath(self.protocol._getExtraPath())
