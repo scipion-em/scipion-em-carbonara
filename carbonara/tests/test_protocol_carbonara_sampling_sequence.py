@@ -107,6 +107,31 @@ class TestCarbonaraSamplingSequence(TestImportData):
                                       iterOutputAttributes()):
             self.assertTrue(str(ProtOutput), output)
 
+        """ This test checks that carbonara runs excluding a chain from sampling
+        and launches AlphaFold
+        """
+        print("Run Carbonara Sampling Sequence protocol from imported pdb file " \
+              "and excluding chain B from sampling and launches AlphaFold")
+
+        args = {'atomStruct': Haemoglobin_PDB,
+                'numSamples': 3,
+                'computeAlphaFold' : True,
+                'selectChains' : True,
+                'selectStructureChains' : 'B'
+                }
+
+        protCarbonaraSamplingSequence = self.newProtocol(
+            CarbonaraSamplingSequence, **args)
+        protCarbonaraSamplingSequence.setObjLabel(
+            'carbonara excluded chain B alpahfold')
+        self.launchProtocol(protCarbonaraSamplingSequence)
+        outPuts = ['5ni1_0', '5ni1_1', '5ni1_2']
+        for output, ProtOutput in zip(outPuts, 
+                                      protCarbonaraSamplingSequence.
+                                      iterOutputAttributes()):
+            self.assertTrue(str(ProtOutput), output)
+
+
 
         """ This test checks that carbonara runs excluding two chains from sampling
         """
@@ -125,6 +150,60 @@ class TestCarbonaraSamplingSequence(TestImportData):
             CarbonaraSamplingSequence, **args)
         protCarbonaraSamplingSequence.setObjLabel(
             'carbonara excluded chains B, D')
+        self.launchProtocol(protCarbonaraSamplingSequence)
+        outPuts = ['5ni1_0', '5ni1_1', '5ni1_2']
+        for output, ProtOutput in zip(outPuts, 
+                                      protCarbonaraSamplingSequence.
+                                      iterOutputAttributes()):
+            self.assertTrue(str(ProtOutput), output)
+
+        """ This test checks that carbonara runs excluding two chains from sampling
+        and launches Alphafold
+        """
+        print("Run Carbonara Sampling Sequence protocol from imported pdb file " \
+              "and excluding chains B and D from sampling" \
+              " and launches AlphaFold"
+              "We except that this test fails due to a carbonara bugg")
+
+
+        args = {'atomStruct': Haemoglobin_PDB,
+                'numSamples': 3,
+                'computeAlphaFold' : True,
+                'selectChains' : True,
+                'selectStructureChains' : 'B, D',
+                }
+
+        protCarbonaraSamplingSequence = self.newProtocol(
+            CarbonaraSamplingSequence, **args)
+        protCarbonaraSamplingSequence.setObjLabel(
+            'carbonara excluded chains B, D, alphafold')
+        self.launchProtocol(protCarbonaraSamplingSequence)
+        outPuts = ['5ni1_0', '5ni1_1', '5ni1_2']
+        for output, ProtOutput in zip(outPuts, 
+                                      protCarbonaraSamplingSequence.
+                                      iterOutputAttributes()):
+            self.assertTrue(str(ProtOutput), output)
+
+        """ This test checks that carbonara runs excluding two chains from sampling
+        and launches Alphafold
+        """
+        print("Run Carbonara Sampling Sequence protocol from imported pdb file " \
+              "and excluding chains B, C and D from sampling" \
+              " and launches AlphaFold"
+              "We except that this test fails due to a carbonara bugg")
+
+
+        args = {'atomStruct': Haemoglobin_PDB,
+                'numSamples': 3,
+                'computeAlphaFold' : True,
+                'selectChains' : True,
+                'selectStructureChains' : 'B, C, D',
+                }
+
+        protCarbonaraSamplingSequence = self.newProtocol(
+            CarbonaraSamplingSequence, **args)
+        protCarbonaraSamplingSequence.setObjLabel(
+            'carbonara excluded chains B,C,D, alphafold')
         self.launchProtocol(protCarbonaraSamplingSequence)
         outPuts = ['5ni1_0', '5ni1_1', '5ni1_2']
         for output, ProtOutput in zip(outPuts, 
@@ -302,6 +381,35 @@ class TestCarbonaraSamplingSequence(TestImportData):
                 'numSamples': 3,
                 'imprintRadio' : 1,
                 'bSampled' : 1,
+                'ignoreAminoacids' : True,
+                'selectIgnoredAminoacids' : "C, W",
+                'useGpu' : False
+                }
+        protCarbonaraSamplingSequence = self.newProtocol(
+            CarbonaraSamplingSequence, **args)
+        protCarbonaraSamplingSequence.setObjLabel(
+            'carbonara inp_ratio 1 sampled C,W ignored, cpu')
+        self.launchProtocol(protCarbonaraSamplingSequence)
+        
+        outPuts = []
+        outPuts.append(PDB_output.getFileName() + "_0")
+        outPuts.append(PDB_output.getFileName() + "_1")
+        outPuts.append(PDB_output.getFileName() + "_2")
+
+        for output, ProtOutput in zip(outPuts, 
+                                      protCarbonaraSamplingSequence.
+                                      iterOutputAttributes()):
+            self.assertTrue(str(ProtOutput), output)
+
+        """ run carbonara 3 seq, inprint ratio 1, sampling method samlpled, 
+        ignored aminoacid Cys Trp, cpu used and launches AlphaFold
+        
+        """
+        args = {'atomStruct': PDB_output,
+                'numSamples': 3,
+                'imprintRadio' : 1,
+                'bSampled' : 1,
+                'computeAlphaFold' : True,
                 'ignoreAminoacids' : True,
                 'selectIgnoredAminoacids' : "C, W",
                 'useGpu' : False
