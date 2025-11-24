@@ -122,28 +122,19 @@ class Plugin(pwem.Plugin):
             conda_env_path = os.path.join(conda_env_path, conda_env)
 
             FLAG = os.path.join(conda_env_path, FLAG)
-            install_cmds = [
-                # Activate Conda y create environment
+
+            install_cmd = [
+                # Activate Conda y create environment for carbonara
                 f'{cls.getCondaActivationCmd()}'
                 f'{create_or_update_conda_env(conda_env, python_version="3.9")} && '
-                # f' conda create -y -n {conda_env} python=3.9 && '
-                # change to
-                # f'cd {conda_env_path}  && '
-                f'{cls.getCARBonAraActivationCmd()} &&'
+                f'{cls.getCARBonAraActivationCmd()} && '
                 # Install
                 f'{GIT_CLONE_CMD} && '
-                # Flag installation finished
-                # f'cd .. && '
                 f'touch {FLAG}'
             ]
 
-            # finalCmds = [(" ".join(install_cmds), FLAG)]
-            finalCmds = [(install_cmds, FLAG)]
-            # print(
-            #     "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA: ",
-            #     os.getcwd(),
-            #     os.path.join(pwem.Config.EM_ROOT, f"{conda_env}-{version}"),
-            #     finalCmds, FLAG)
+            finalCmds = [(install_cmd, FLAG)]
+            print("finalCmds: ", finalCmds)
 
             # CARBonAra package registered in Scipion environment
             env.addPackage(
