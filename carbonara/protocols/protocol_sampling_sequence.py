@@ -41,7 +41,7 @@ from pyworkflow.utils.path import makePath
 from pyworkflow.object import Integer, String
 from pwem.protocols import EMProtocol
 from pwem.convert.atom_struct import AtomicStructHandler, fromCIFToPDB
-from ..constants import CLUSTALO
+from ..constants import CLUSTALO, colab_env, jax_api, colabfold_repo
 from pwem.convert.sequence import alignClustalSequences
 from Bio import SeqIO, AlignIO
 from Bio.PDB import PDBParser, is_aa
@@ -101,7 +101,8 @@ class CarbonaraSamplingSequence(EMProtocol):
 
 # -------------------------- DEFINE param functions ----------------------
     METHOD_OPTIONS = ['max', 'sampled']
-
+    COMPLEX = False
+    BINDER = False
 
     def _defineParams(self, form):
         """ Defining the input parameters that will be used.
@@ -130,6 +131,12 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' prior information. To get higher variability in the sequence you\n'
                            ' have to choose values close to 1.0. All the positions will contain\n'
                            ' prior information to bias the prediction')
+        
+        form.addParam('computeAlphaFold', params.BooleanParam,
+                      label="Compute Alphafold scores?",
+                      default=False,
+                      help="Select 'Yes' if you want to compute AlphaFold scores for sequence\n"
+                            "predictions. Take into account that this process cmay take a while.")
     
         form.addParam('bSampled', params.EnumParam, 
                       choices=self.METHOD_OPTIONS,
@@ -268,8 +275,23 @@ class CarbonaraSamplingSequence(EMProtocol):
         h = AtomicStructHandler()
         h.read(self.atomStructName) 
         h.getStructure()
-        self.listOfChains, self.listOfResidues = h.getModelsChains()
-        print("self.listOfChains: ", self.listOfChains)
+        listOfChains, listOfResidues = h.getModelsChains()
+
+        self.chains = list(next(iter(listOfChains.values())))
+
+        if len(self.chains) > 1:
+            self.COMPLEX = True
+            if self.selectChains == True and self.selectStructureChains.get():
+                self.binder = [c for c in self.chains if c != self.selectStructureChains]
+                if len(self.binder) == 1:
+                    self.BINDER = True
+                    # when all except one chain have been selected 
+                    self.idx = self.chains.index(str(self.binder[0]))
+        elif len(self.chains) == 1:
+            self.BINDER = True
+            self.idx = 0   
+        print("self.COMPLEX: ", self.COMPLEX)
+        print("self.BINDER: ", self.BINDER)
 
     def processStep(self):
     
@@ -285,25 +307,29 @@ class CarbonaraSamplingSequence(EMProtocol):
         args.extend(["--sampling_method", self.METHOD_OPTIONS[self.bSampled.get()]])
 
         # excluded chains        
-        if self.selectChains==True and self.selectStructureChains.get() is not None:
+        if (self.selectChains==True and 
+            self.selectStructureChains.get()):
             chains = str(self.selectStructureChains.get())
             args.extend(["--known_chains", chains.replace(" ", "")])
         '''
         TODO: Restore this parameter when it works in carbonara method
 
         # excluded residues        
-        if self.selectKnoumResidues==True and self.selectKnownStructureResidues.get() is not None:
+        if (self.selectKnoumResidues==True and 
+            self.selectKnownStructureResidues.get()):
             knownResidues = str(self.selectKnownResidues.get())
             args.extend(["--known_positions", knownResidues])  
         
         # included residues  
-        if self.selectUnknounResidues==True and self.selectUnknownStructureResidues.get() is not None:
+        if (self.selectUnknounResidues==True and 
+            self.selectUnknownStructureResidues.get()):
             unknownResidues = str(self.selectUnknownStructureResidues.get())
             args.extend(["--unknown_positions", unknownResidues]) 
         '''
             
         # ignored aminoacid
-        if self.ignoreAminoacids==True and self.selectIgnoredAminoacids.get() is not None:
+        if (self.ignoreAminoacids==True and 
+            self.selectIgnoredAminoacids.get()):
             ignoredResidues = str(self.selectIgnoredAminoacids.get())
             args.extend(["--ignored_amino_acids", ignoredResidues.replace(" ", "")]) 
         
@@ -344,12 +370,71 @@ class CarbonaraSamplingSequence(EMProtocol):
         summ_align_file = os.path.abspath(self._getExtraPath("clustal_summary.aln")) 
         self.filter_file_lines(self.outFile, summ_align_file)
 
+        # Generation of alphafold predictions
+        if self.computeAlphaFold == True:
+            if self.COMPLEX == True:
+                # AlphaFold prediction for complex (two or more proteins)
+                # Scores pDDT, pTM, ipTM (this one null in case complex of one protein)
+                print("Running colabfold_batch, this may take a while...")
+                merged_multimer_folder_path = os.path.abspath(
+                    self._getExtraPath("merged.fasta")) 
+                alphafold_subdirectory_multimer= "alphafold_predictions_multimer"
+                self.multimer_folder_path = os.path.join(
+                    self.dir_path, alphafold_subdirectory_multimer)
+                self.compute_alphafold(merged_multimer_folder_path, self.multimer_folder_path)
+
+            if self.BINDER == True:
+                # AlphaFold predictions for the only protein sequence sampled in a complex
+                # or for inputs of one protein
+                # Scores pDDT, pTM
+                alphafold_subdirectory_binder= "alphafold_predictions_binder"
+                self.binder_folder_path = os.path.join(
+                    self.dir_path, alphafold_subdirectory_binder)
+                if  len(self.chains) > 1:
+                    # case complex
+                    merged_binder_folder_path = os.path.abspath(
+                        self._getExtraPath("merged_binder.fasta"))
+                    self.extract_binder_chain_from_aln_file(
+                        merged_multimer_folder_path, self.idx, merged_binder_folder_path)
+                    self.compute_alphafold(
+                        merged_binder_folder_path, self.binder_folder_path)
+                if  len(self.chains) == 1:
+                    # case one only protein
+                    merged_multimer_folder_path = os.path.abspath(
+                        self._getExtraPath("merged.fasta")) 
+                    self.compute_alphafold(
+                        merged_multimer_folder_path, self.binder_folder_path)
+
         # Summarize sequence scores in a file
         output_scores_csv_file = os.path.join(self.dir_path, "sorted_scores.csv")
         self.extract_scores_from_fasta(self.subdir_path, output_scores_csv_file)
 
+        if self.computeAlphaFold == True:
+            metrics_complex = None
+            metrics_binder = None
+
+            # Extract if they are not None
+
+            if (self.COMPLEX == True and
+                os.path.exists(os.path.join(self.multimer_folder_path, "log.txt"))):
+                log_file = os.path.join(self.multimer_folder_path, "log.txt")
+                metrics_complex= self.extract_metrics_from_log_complex(log_file)
+
+            if (self.BINDER == True and 
+                os.path.exists(os.path.join(self.binder_folder_path, "log.txt"))):
+                log_file = os.path.join(self.binder_folder_path, "log.txt")
+                metrics_binder = self.extract_metrics_from_log_binder(log_file)
+            
+            # Merge and write csv
+            self.merge_and_write_csv(
+                self.rows, output_scores_csv_file, 
+                    metrics_complex=metrics_complex, 
+                    metrics_binder=metrics_binder)
+
     def createOutputStep(self):
         """Register sequences generated"""
+        
+        outputs = {}
 
         setSeq = SetOfSequences()
         outputSequences = setSeq.create(outputPath=self._getPath())
@@ -359,7 +444,7 @@ class CarbonaraSamplingSequence(EMProtocol):
         filepath_list = self.sel_files_seq_unique(self.subdir_path)
 
         # check if .fasta files exist before registering
-        # in a folder call sequences
+        # in a folder call carbonara_results
         # create output: sequences
         for filename in sorted(os.listdir(self.subdir_path)):
             if filename.endswith(".fasta"):
@@ -388,6 +473,31 @@ class CarbonaraSamplingSequence(EMProtocol):
         # total number of unique sequences
         num_sequences = len(sequences)
         print(f"Total number of unique sequences: {num_sequences}")
+
+        """Register alphafold predictions generated"""
+        if self.computeAlphaFold == True:
+        # check if .pdb files exist before registering
+        # in a folder call alphafold_predictions_multimer 
+        # and/or alphafold_predictions_binder
+        # create output: atom structures
+            if self.COMPLEX == True:
+                for filename in sorted(os.listdir(self.multimer_folder_path)):
+                    if filename.endswith(".pdb") or filename.endswith(".cif"):
+                        path = os.path.join(self.subdir_path, filename)
+                        pdb = AtomStruct()
+                        pdb.setFileName(path)
+                        keyword = filename.split("_unrelaxed_")[0] + "_complex"
+                        outputs[keyword] = pdb
+                self._defineOutputs(**outputs)           
+            if self.BINDER == True and len(self.chains) == 1:
+                for filename in sorted(os.listdir(self.binder_folder_path)):
+                    if filename.endswith(".pdb") or filename.endswith(".cif"):
+                        path = os.path.join(self.subdir_path, filename)
+                        pdb = AtomStruct()
+                        pdb.setFileName(path)
+                        keyword = filename.split("_unrelaxed_")[0] + "_binder"
+                        outputs[keyword] = pdb
+                self._defineOutputs(**outputs) 
    
 
     # --------------------------- INFO functions ----------------------------
@@ -519,7 +629,12 @@ class CarbonaraSamplingSequence(EMProtocol):
         Generate a CSV file with columns: file_name, sequence, score.
         Avoids duplicate sequences and sorts entries by score (highest first).
         """
-        rows = []
+        self.rows = []
+
+        # include starting sequence as first sequence self.wholeSequence
+        name = os.path.basename(
+            os.path.splitext(self.atomStructName)[0])
+        self.rows.append([name, self.wholeSequence, 1])
         
         #include all the sampled sequences without duplicates
         filepath_list = self.sel_files_seq_unique(folder_path)
@@ -529,6 +644,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                 filepath = os.path.join(folder_path, filename)
 
                 if filepath in filepath_list:
+                    seq_name = os.path.splitext(filename)[0]
                     for record in SeqIO.parse(filepath, "fasta"):
                         seq_str = str(record.seq)
 
@@ -538,19 +654,21 @@ class CarbonaraSamplingSequence(EMProtocol):
                         for part in header.split(","):
                             if "score" in part:
                                 score = float(part.split("=")[1].strip())
-                                rows.append([filename, seq_str, score])
+                                self.rows.append([seq_name, seq_str, score])
                                 break
 
-        # sort rows by score descending
-        rows.sort(key=lambda x: x[2], reverse=True)
+        if self.computeAlphaFold == False:
+            # sort rows by score descending
+            self.rows.sort(key=lambda x: x[2], reverse=True)
         
-        # write to CSV
-        with open(output_scores_csv_file, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(["file_name", "sequence", "CARBonAra score"]) # header row
-            writer.writerows(rows)
+           # write to CSV
+            with open(output_scores_csv_file, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(["file_name", "sequence", "CARBonAra score"]) # header row
+                # then all extracted rows
+                writer.writerows(self.rows)
 
-        print(f"CSV file generated: {output_scores_csv_file} with {len(rows)} unique sequences")
+            print(f"CSV file generated: {output_scores_csv_file} with {len(self.rows)} unique sequences")
 
     def filter_file_lines(self, filepath, newfilepath):
         first_label = None
@@ -613,5 +731,221 @@ class CarbonaraSamplingSequence(EMProtocol):
                         filepaths.append(filepath)
 
         return filepaths
+    
+    def install_conda_localcolabfold(self):
+        """
+        Ensure that the conda environment 'localcolabfold' exists and has ColabFold installed.
+        Uses os.system() to run shell commands.
+        """
+        # Command to check if environment exists, otherwise create it
+        create_env_cmd = (
+            "conda env list | grep -q '^localcolabfold ' || conda create -n localcolabfold -y python=3.10"
+        )
+        # Print command in red
+        print(f"\033[31mcommand: {create_env_cmd}\033[0m")
 
+        # Command to install/update ColabFold in that environment
+        install_colabfold_cmd = "conda run -n localcolabfold pip install -U colabfold"
+        # Print command in red
+        print(f"\033[31mcommand: {install_colabfold_cmd}\033[0m")
+        
+        # Execute both commands
+        os.system(create_env_cmd)
+        os.system(install_colabfold_cmd)
 
+    def compute_alphafold(self, in_folder_path, out_folder_path):
+        self.install_conda_localcolabfold()
+        command = (
+                   f'conda run -n localcolabfold colabfold_batch --num-models 1 {in_folder_path} {out_folder_path}'           
+        )
+        # Print command in red
+        print(f"\033[31mcommand: {command}\033[0m")
+
+        # Execute command
+        os.system(str(command))
+
+    def extract_binder_chain_from_aln_file(self, in_folder_path, chain_index, out_folder_path):
+        """
+        Extracts a specific chain from FASTA sequences separated by ':'.
+
+        Parameters:
+        - in_folder_path: path to the original FASTA file
+        - chain_index: index of the chain to extract (0=A, 1=B, 2=C, ...)
+        - out_folder_path: path to the resulting FASTA file
+        """
+        with open(in_folder_path) as fin, open(out_folder_path, "w") as fout:
+            header = None
+            for line in fin:
+                line = line.strip()
+                if line.startswith(">"):
+                    # Save the header line (sequence identifier)
+                    header = line
+                else:
+                    # Split the sequence into chains using ':'
+                    chains = line.split(":")
+                    if chain_index < len(chains):
+                        seq = chains[chain_index]
+                        # Write the new header with chain index
+                        fout.write(f"{header}_chain{self.chains[chain_index]}\n")
+                        # Write the extracted sequence
+                        fout.write(seq + "\n")
+
+    def extract_metrics_from_log_complex(self, log_file):
+        """
+        Extraction of list [filename, pLDDT, pTM, ipTM] from a localcolabfold log
+        """
+        results = []
+
+        with open(log_file, "r") as f:
+            lines = f.readlines()
+
+        seq_name = None
+        for line in lines:
+
+            # Detect sequence name
+            if "Query" in line:
+                match = re.search(r"Query\s+\d+/\d+:\s+(\S+)", line)
+                if match:
+                    seq_name = match.group(1)
+
+            # Search line with scores
+            if "rank_001" in line and seq_name:
+                plddt = re.search(r"pLDDT=([\d\.]+)", line)
+                ptm   = re.search(r"pTM=([\d\.]+)", line)
+                iptm  = re.search(r"ipTM=([\d\.]+)", line)
+
+                results.append([
+                    seq_name,
+                    float(plddt.group(1)) if plddt else None,
+                    float(ptm.group(1)) if ptm else None,
+                    float(iptm.group(1)) if iptm else None
+                ])
+
+                # Reinitiate seq_name to avoid association to other line by error
+                seq_name = None
+
+        return results
+    
+    def extract_metrics_from_log_binder(self, log_file):
+        """
+        Extraction of list [filename, pLDDT, pTM] from a localcolabfold log
+        """
+        results = []
+
+        with open(log_file, "r") as f:
+            lines = f.readlines()
+
+        seq_name = None
+        for line in lines:
+
+            # Detect sequence name
+            if "Query" in line:
+                match = re.search(r"Query\s+\d+/\d+:\s+(\S+)", line)
+                if match:
+                    seq_name = match.group(1)
+
+            # Search line with scores
+            if "rank_001" in line and seq_name:
+                plddt = re.search(r"pLDDT=([\d\.]+)", line)
+                ptm   = re.search(r"pTM=([\d\.]+)", line)
+
+                results.append([
+                    seq_name,
+                    float(plddt.group(1)) if plddt else None,
+                    float(ptm.group(1)) if ptm else None,
+                ])
+
+                # Reinitiate seq_name to avoid association to other line by error
+                seq_name = None
+
+        return results
+        
+
+    def merge_and_write_csv(self, seq_scores, output_file, 
+                            metrics_complex=None, metrics_binder=None):
+        """
+        Merge score lists to generate a unique one in different cases of 
+        alphafold predictions.
+        Cases:
+            - seq_scores + metrics from complex
+            - seq_scores + metrics from binder
+            - seq_scores + metrics from complex and metrics from binder
+        """
+        # Convert seq_scores to dict {file_name: {sequence, score}}
+        merged = {}
+        
+        for row in seq_scores:
+            print("row: ", row)
+            file_name, sequence, score = row
+            merged[file_name] = {"file_name": file_name, 
+                                 "sequence": sequence, 
+                                 "score": score}
+
+        # bind metrics from complex if they are not None
+        if metrics_complex:
+            for row in metrics_complex:
+                file_name, plddt, ptm, iptm = row
+
+                if file_name in merged:
+                    merged[file_name]["pLDDT_complex"] = plddt
+                    merged[file_name]["pTM_complex"] = ptm
+                    merged[file_name]["ipTM_complex"] = iptm
+
+        # bind metrics from binder if they are not None
+        if metrics_binder:
+            for row in metrics_binder:
+
+                file_name_chain, plddt, ptm = row
+                try:
+                    file_name = file_name_chain.split("_chain")[0]
+                except:
+                    file_name = file_name_chain
+
+                if file_name in merged:
+                    merged[file_name]["pLDDT_binder"] = plddt
+                    merged[file_name]["pTM_binder"] = ptm
+
+        # convert to list of rows
+        rows = list(merged.values())
+
+        # ordering by descendant ipTM score
+        has_complex = any("ipTM_complex" in r for r in rows)
+        has_binder  = any("pTM_binder" in r for r in rows)
+
+        if has_complex and has_binder:
+            rows.sort(key=lambda r: (
+                r.get("ipTM_complex", -1),
+                r.get("pTM_complex", -1),
+                r.get("pTM_binder", -1)
+            ), reverse=True)
+            sort_msg = "orderd by ipTM_complex, then pTM_complex and finally pTM_binder"
+        elif has_complex:
+            rows.sort(key=lambda r: (
+                r.get("ipTM_complex", -1),
+                r.get("pTM_complex", -1)
+            ), reverse=True)
+            sort_msg = "ordered by ipTM_complex and then pTM_complex"
+        elif has_binder:
+            rows.sort(key=lambda r: r.get("pTM_binder", -1), reverse=True)
+            sort_msg = "ordered by pTM_binder"
+        else:
+            rows.sort(key=lambda r: r["score"], reverse=True)
+            sort_msg = "ordered by score"
+
+        # determine header 
+        header = [
+            "file_name", "sequence", "score",
+            "pLDDT_complex", "pTM_complex", "ipTM_complex",
+            "pLDDT_binder", "pTM_binder"
+        ]
+
+        # write CSV
+        with open(output_file, "w", newline="") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=header)
+            writer.writeheader()
+            for r in rows:
+                for h in header:
+                    if h not in r:
+                        r[h] = None
+                writer.writerow(r)
+        print(f"CSV generated: {output_file} with {len(merged)} sequences, {sort_msg}.")
