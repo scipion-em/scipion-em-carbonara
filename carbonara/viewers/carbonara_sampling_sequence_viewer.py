@@ -27,13 +27,16 @@
 
 import os
 import csv
+import re
 import pyworkflow.protocol.params as params
 from ..protocols import CarbonaraSamplingSequence
 from pyworkflow.viewer import DESKTOP_TKINTER, WEB_DJANGO, ProtocolViewer
 from tkinter.messagebox import showerror
 from pyworkflow.gui.text import openTextFileEditor
-from pwem.viewers import TableView
+from pwem.viewers import TableView, Chimera
 from tkinter import messagebox
+from pwem import Domain
+
 
 def errorWindow(tkParent, msg):
     try:
@@ -45,6 +48,7 @@ def errorWindow(tkParent, msg):
     except:
         print(("Error:", msg))
 
+ 
 class CarbonaraViewer(ProtocolViewer):
     """ Visualize the output of protocol carbonara sampling sequence """
     _label= 'carbonara viewer'
@@ -53,6 +57,8 @@ class CarbonaraViewer(ProtocolViewer):
 
     def __init__(self, **kwargs):
         ProtocolViewer.__init__(self, **kwargs)
+        self.complex_file = None
+        self.binder_file = None
 
     def _defineParams(self, form):
         form.addSection(label='Visualization of CARBonAra results')
@@ -77,47 +83,137 @@ class CarbonaraViewer(ProtocolViewer):
                        ' symbols.')
         
         if self.protocol.computeAlphaFold:
-            atom_structure_complex = []
-            atom_structure_binder = []
-            dir_path = os.path.abspath(self.protocol._getExtraPath())
 
-            if self.protocol.COMPLEX == True:
+            self.atom_structure_complex = []
+            self.atom_structure_binder = []
+
+            self.dir_path = os.path.abspath(self.protocol._getExtraPath())
+            if os.path.exists(
+                os.path.join(self.dir_path, "alphafold_predictions_multimer")):
+                self.protocol.multimer_folder_path = \
+                    os.path.join(self.dir_path, "alphafold_predictions_multimer")
+
                 for filename in sorted(
                     os.listdir(self.protocol.multimer_folder_path)):
                     if filename.endswith(".pdb") or filename.endswith(".cif"):
-                        atom_structure_complex.append(filename)
+                        self.atom_structure_complex.append(filename)
 
                 group = form.addGroup('Complex structure viewer')
-                group.addParam('displayAtomStructure', 
-                       choices=atom_structure_complex,
-                       display=params.EnumParam.DISPLAY_LIST,
-                       label='Select one complex to visualize its atom structure', 
-                       help='')
-                        
-            if self.BINDER == True and len(self.chains) == 1:
-                for filename in sorted(
-                    os.listdir(self.protocol.binder_folder_path)):
-                    if filename.endswith(".pdb") or filename.endswith(".cif"):
-                        atom_structure_binder.append(filename)
+                group.addParam('displayComplexAtomStructure', params.EnumParam, 
+                               display=params.EnumParam.DISPLAY_LIST,
+                               choices=self.atom_structure_complex,
+                               default = 0,
+                               label='Select one COMPLEX', 
+                               help='Select one complex with more than one chain '
+                                    'to visualize its atom structure. If a binder ' \
+                                    'was associated to this complex, the structure' \
+                                    ' of the binder will be also shown.')
+            else:
 
-                group = form.addGroup('Binder structure viewer')
-                group.addParam('displayAtomStructure', 
-                       choices=atom_structure_binder,
-                       display=params.EnumParam.DISPLAY_LIST,
-                       label='Select one binder to visualize its atom structure', 
-                       help='')
-                       
-        
+                if os.path.exists(
+                    os.path.join(self.dir_path, "alphafold_predictions_binder")): 
+                    self.protocol.binder_folder_path = \
+                        os.path.join(self.dir_path, "alphafold_predictions_binder")           
+            
+                    for filename in sorted(
+                        os.listdir(self.protocol.binder_folder_path)):
+                        if filename.endswith(".pdb") or filename.endswith(".cif"):
+                            self.atom_structure_binder.append(filename)
+
+                    group = form.addGroup('Binder structure viewer')
+                    group.addParam('displayBinderAtomStructure', params.EnumParam, 
+                                   display=params.EnumParam.DISPLAY_LIST,
+                                   choices=self.atom_structure_binder,
+                                   default = 0,
+                                   label='Select one BINDER',
+                                   help='Select one binder (only one chain) to visualize'
+                                        ' its atom structure')
+
 
     def _getVisualizeDict(self):
-        return {
+        vis_dict = {
             'displayScores': self._showAllScores,
             'displaySequences': self._showSequences,
             'displayAlignment': self._showAlignment,
-            'displayAlignmentSummary': self._showAlignmentSummary
+            'displayAlignmentSummary': self._showAlignmentSummary,
         }
-    
-    # view all text files located in protocol extra folder
+
+        # Add complex if it exits and binder does or does not
+        if (self.protocol.computeAlphaFold and 
+            os.path.exists(os.path.join(self.dir_path, "alphafold_predictions_multimer"))):
+            
+            self.multimer_folder_path = \
+                os.path.join(self.dir_path, "alphafold_predictions_multimer")
+            
+            choices = self.atom_structure_complex
+            idx = self.displayComplexAtomStructure.get()
+            if idx is not None and 0 <= idx < len(choices):
+                complex_choice = choices[idx]
+                self.complex_file = os.path.join(self.multimer_folder_path,
+                                    complex_choice)
+
+            vis_dict['displayComplexAtomStructure'] = \
+                lambda p=None: self._showStructuresInChimeraX([self.complex_file])
+
+        # Add binder if it exits and complex does not
+        if (self.protocol.computeAlphaFold and not
+            os.path.exists(os.path.join(self.dir_path, "alphafold_predictions_multimer")) and
+            os.path.exists(os.path.join(self.dir_path, "alphafold_predictions_binder"))):
+
+            self.binder_folder_path = \
+                os.path.join(self.dir_path, "alphafold_predictions_binder")
+            
+            choices = self.atom_structure_binder
+            idx = self.displayBinderAtomStructure.get()
+            
+            if idx is not None and 0 <= idx < len(choices):
+                binder_choice = choices[idx]
+                self.binder_file = os.path.join(self.binder_folder_path,
+                                   binder_choice )
+
+            vis_dict['displayBinderAtomStructure'] = \
+                lambda p=None: self._showStructuresInChimeraX([self.binder_file])
+        """
+        TODO: Comment
+        # Add complex and binder if they both exist
+        if (self.protocol.computeAlphaFold and 
+            os.path.exists(os.path.join(self.dir_path, "alphafold_predictions_multimer")) and 
+            os.path.exists(os.path.join(self.dir_path, "alphafold_predictions_binder"))):
+            
+            self.multimer_folder_path = \
+                os.path.join(self.dir_path, "alphafold_predictions_multimer")
+            self.binder_folder_path = \
+                os.path.join(self.dir_path, "alphafold_predictions_binder")
+            
+            # Complex
+            choices = self.atom_structure_complex
+            idx = self.displayComplexAtomStructure.get()
+            complex_file = None
+            if idx is not None and 0 <= idx < len(choices):
+                complex_choice = choices[idx]
+                complex_file = os.path.join(self.multimer_folder_path,
+                                    complex_choice)
+                self.complex_file = complex_file
+                print("self.complex_file: ", self.complex_file)
+
+            
+            # Binder
+            choices = self.atom_structure_binder
+            idx = self.displayBinderAtomStructure.get()
+            binder_file = None
+            if idx is not None and 0 <= idx < len(choices):
+                binder_choice = choices[idx]
+                self.binder_file = os.path.join(self.binder_folder_path,
+                                   binder_choice )
+                self.binder_file = binder_file
+                print("self.binder_file: ", self.binder_file)
+            
+            if complex_file and binder_file:
+                vis_dict['displayComplexAndBinder'] = \
+                lambda p=None: self._showStructuresInChimeraX([self.complex_file, self.binder_file])
+        """    
+        return vis_dict
+
 
     def _showScores(self, headerList, dataList, mesg, title):
 
@@ -132,8 +228,8 @@ class CarbonaraViewer(ProtocolViewer):
                   height=len(dataList), width=250, padding=40)
 
     def _showAllScores(self, e=None):
-        dir_path = os.path.abspath(self.protocol._getExtraPath())
-        csvFile = os.path.join(dir_path, "sorted_scores.csv")
+        self.dir_path = os.path.abspath(self.protocol._getExtraPath())
+        csvFile = os.path.join(self.dir_path, "sorted_scores.csv")
 
         headers = []
         dataList = []
@@ -178,7 +274,73 @@ class CarbonaraViewer(ProtocolViewer):
         clustalAlignFileSummaryFile = os.path.join(self.dir_path, "clustal_summary.aln")
         if os.path.exists(clustalAlignFileSummaryFile):
             openTextFileEditor(clustalAlignFileSummaryFile)
-    
+
+    def _showStructuresInChimeraX(self, e=None):
+
+        # Atom structures to show
+        fileNames = []
+        if self.complex_file:
+            fileNames.append(self.complex_file)
+            if (os.path.exists(os.path.join(self.dir_path, "alphafold_predictions_binder"))):
+                self.binder_folder_path = \
+                    os.path.join(self.dir_path, "alphafold_predictions_binder")
+                baseFileName = self.complex_file.split("/")[-1].split("_unrelaxed_")[0]
+
+                for filename in sorted(
+                        os.listdir(self.binder_folder_path)):
+                        if (filename.startswith(baseFileName + "_chain") and
+                            filename.endswith(".pdb" or ".cif")):
+                            binder_file = os.path.join(self.binder_folder_path, filename)
+                            fileNames.append(binder_file)
+                
+        if self.binder_file:
+            fileNames.append(self.binder_file)
+
+        fileNames = [os.path.abspath(f) for f in fileNames if f]
+
+        bildFileName = self.protocol._getExtraPath("axis_output.bild")
+        fnCmd = self.protocol._getExtraPath("chimera_output.cxc")
+        
+        # Create axes
+        dim = 150.
+        sampling = 1.
+
+        Chimera.createCoordinateAxisFile(
+            dim,
+            bildFileName=bildFileName,
+            sampling=sampling
+        )
+         # Write ChimeraX script
+        
+        with open(fnCmd, 'w', encoding='utf-8') as f:
+            # change to workingDir
+            # If we do not use cd and the project name has an space
+            # the protocol fails even if we pass absolute paths
+            f.write('cd %s\n' % os.getcwd())
+            # reference axis model = 1
+            f.write("open %s\n" % bildFileName)
+            f.write("cofr 0,0,0\n")  # set center of coordinates
+            # open all fileNames
+            for pdbFileName in fileNames:
+                f.write("open %s\n" % pdbFileName)
+            f.write("color by bfactor palette alphafold\n")
+            if len(fileNames) > 1:
+                try:
+                    filename = fileNames[1]
+                    filename = os.path.basename(pdbFileName)
+                    match = re.search(r'chain([A-Za-z0-9]+)', filename)
+                    if match:
+                        chain = match.group(1)
+                        f.write("mmaker #3/%s to #2/%s\n" % (chain, chain))
+                except Exception as e:
+                    print("Error writing mmaker command:", e)
+
+        # run in the background
+        chimeraPlugin = Domain.importFromPlugin('chimera', 'Plugin', doRaise=True)
+        chimeraPlugin.runChimeraProgram(chimeraPlugin.getProgram(), fnCmd + "&",
+                                        cwd=os.getcwd())
+        return []
+
     def errorWindow(tkParent, msg):
         try:
             showerror("Error",  # bar title
