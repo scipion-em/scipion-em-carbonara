@@ -282,7 +282,9 @@ class CarbonaraSamplingSequence(EMProtocol):
         if len(self.chains) > 1:
             self.COMPLEX = True
             if self.selectChains == True and self.selectStructureChains.get():
-                self.binder = [c for c in self.chains if c != self.selectStructureChains]
+                selected = [s.strip() for s in self.selectStructureChains.get().split(",")]
+                self.binder = [c for c in self.chains if c not in selected]
+
                 if len(self.binder) == 1:
                     self.BINDER = True
                     # when all except one chain have been selected 
@@ -488,8 +490,8 @@ class CarbonaraSamplingSequence(EMProtocol):
                         pdb.setFileName(path)
                         keyword = filename.split("_unrelaxed_")[0] + "_complex"
                         outputs[keyword] = pdb
-                self._defineOutputs(**outputs)           
-            if self.BINDER == True and len(self.chains) == 1:
+                  
+            if self.BINDER == True:
                 for filename in sorted(os.listdir(self.binder_folder_path)):
                     if filename.endswith(".pdb") or filename.endswith(".cif"):
                         path = os.path.join(self.subdir_path, filename)
@@ -497,7 +499,10 @@ class CarbonaraSamplingSequence(EMProtocol):
                         pdb.setFileName(path)
                         keyword = filename.split("_unrelaxed_")[0] + "_binder"
                         outputs[keyword] = pdb
-                self._defineOutputs(**outputs) 
+            
+            if outputs:
+                self._defineOutputs(**outputs)
+
    
 
     # --------------------------- INFO functions ----------------------------
