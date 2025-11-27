@@ -35,7 +35,7 @@ from pwem.constants import MAXIT
 from .constants import (CARBONARA_ENV_ACTIVATION, conda_env,
                         GIT_CLONE_CMD, CARBONARA_PROGRAM)
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 _logo = "icon.png"
 _references = ['Krapp2024']
 
