@@ -30,14 +30,16 @@ import sys
 import pwem
 import pyworkflow.utils as pwutils
 from scipion.install.funcs import VOID_TGZ
-from pwem.constants import MAXIT
+# from pwem.constants import MAXIT
 
 from .constants import (CARBONARA_ENV_ACTIVATION, conda_env,
-                        GIT_CLONE_CMD, CARBONARA_PROGRAM)
+                        GIT_CLONE_CMD, CARBONARA_PROGRAM,
+                        colab_env, colabfold_repo, jax_api)
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 _logo = "icon.png"
 _references = ['Krapp2024']
+
 
 class Plugin(pwem.Plugin):
 
@@ -50,7 +52,7 @@ class Plugin(pwem.Plugin):
     @classmethod
     def getCarbonaraCmd(cls):
         cmd = cls.getCondaActivationCmd()
-        cmd += f" "
+        cmd += " "
         cmd += cls.getVar(CARBONARA_ENV_ACTIVATION)
         cmd += f" && {CARBONARA_PROGRAM} "
         return cmd
@@ -127,9 +129,11 @@ class Plugin(pwem.Plugin):
                 # Activate Conda y create environment for carbonara
                 f'{cls.getCondaActivationCmd()}'
                 f'{create_or_update_conda_env(conda_env, python_version="3.9")} && '
-                f'{cls.getCARBonAraActivationCmd()} && '
                 # Install
-                f'{GIT_CLONE_CMD} && '
+                f'conda run -n {conda_env} {GIT_CLONE_CMD} && '
+                f'{create_or_update_conda_env(colab_env, python_version="3.10")} && '
+                f'conda run -n {colab_env} pip install --upgrade "jax[cuda12]" -f {jax_api} && '
+                f'conda run -n {colab_env} pip install "{colab_env}[alphafold] @ {colabfold_repo}" && '
                 f'touch {FLAG}'
             ]
 
