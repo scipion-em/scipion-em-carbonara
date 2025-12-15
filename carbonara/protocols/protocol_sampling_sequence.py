@@ -28,14 +28,15 @@
 # **************************************************************************
 
 import os
+import sys
 import csv
 import re
 from pwem.objects import AtomStruct, Sequence, SetOfSequences
-from pyworkflow.constants import BETA
-from pyworkflow.protocol import (params, 
-                                LEVEL_ADVANCED,
-                                GPU_LIST,
-                                USE_GPU)
+# from pyworkflow.constants import BETA
+from pyworkflow.protocol import (params,
+                                 LEVEL_ADVANCED,
+                                 GPU_LIST,
+                                 USE_GPU)
 from pyworkflow.utils import Message
 from pyworkflow.utils.path import makePath
 from pyworkflow.object import Integer, String
@@ -736,35 +737,13 @@ class CarbonaraSamplingSequence(EMProtocol):
                         filepaths.append(filepath)
 
         return filepaths
-    
-    def install_conda_localcolabfold(self):
-        """
-        Ensure that the conda environment 'localcolabfold' exists and has ColabFold installed.
-        Uses os.system() to run shell commands.
-        """
-        # Command to check if environment exists, otherwise create it
-        create_env_cmd = (
-            "conda env list | grep -q '^localcolabfold ' || conda create -n localcolabfold -y python=3.10"
-        )
-        # Print command in red
-        print(f"\033[31mcommand: {create_env_cmd}\033[0m")
-
-        # Command to install/update ColabFold in that environment
-        install_colabfold_cmd = "conda run -n localcolabfold pip install -U colabfold"
-        # Print command in red
-        print(f"\033[31mcommand: {install_colabfold_cmd}\033[0m")
-        
-        # Execute both commands
-        os.system(create_env_cmd)
-        os.system(install_colabfold_cmd)
 
     def compute_alphafold(self, in_folder_path, out_folder_path):
-        self.install_conda_localcolabfold()
         command = (
-                   f'conda run -n localcolabfold colabfold_batch --num-models 1 {in_folder_path} {out_folder_path}'           
+                   f'conda run -n colabfold colabfold_batch --num-models 1 {in_folder_path} {out_folder_path}'           
         )
         # Print command in red
-        print(f"\033[31mcommand: {command}\033[0m")
+        print(f"\033[31mcommand: {command}\033[0m", file=sys.stderr)
 
         # Execute command
         os.system(str(command))
