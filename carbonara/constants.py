@@ -34,8 +34,8 @@ repo_url = "https://github.com/LBM-EPFL/CARBonAra"
 # if this hash is modified the wrapper version should be increased
 GIT_CLONE_CMD = "pip install -vv git+https://github.com/LBM-EPFL/CARBonAra.git@1ed6359f299e14274bd0372bc3fb0594506decc8"
 jax_api = "https://storage.googleapis.com/jax-releases/jax_releases.html"
-colabfold_repo = "colabfold[alphafold] @ git+https://github.com/sokrypton/ColabFold"
-colab_env = "localcolabfold"
+colabfold_repo = "git+https://github.com/sokrypton/ColabFold"
+colab_env = "colabfold"
 repo_name = "CARBonAra"
 conda_env = "carbonara"
 
