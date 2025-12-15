@@ -30,8 +30,8 @@ import os
 from ..protocols import CarbonaraSamplingSequence
 from chimera.protocols import ChimeraProtOperate
 from pyworkflow.tests import BaseTest, setupTestProject
-from pwem.protocols.protocol_import import (ProtImportPdb,
-     ProtImportVolumes)
+from pwem.protocols.protocol_import import (ProtImportPdb)
+
 
 class TestImportBase(BaseTest):
     @classmethod
@@ -84,7 +84,7 @@ class TestCarbonaraSamplingSequence(TestImportData):
                                       iterOutputAttributes()):
             self.assertTrue(str(ProtOutput), output)
 
-   
+
         """ This test checks that carbonara runs excluding a chain from sampling
         """
         print("Run Carbonara Sampling Sequence protocol from imported pdb file " \
