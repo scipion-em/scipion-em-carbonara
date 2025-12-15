@@ -36,7 +36,7 @@ from .constants import (CARBONARA_ENV_ACTIVATION, conda_env,
                         GIT_CLONE_CMD, CARBONARA_PROGRAM,
                         colab_env, colabfold_repo, jax_api)
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 _logo = "icon.png"
 _references = ['Krapp2024']
 
