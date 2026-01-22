@@ -31,6 +31,8 @@ import os
 import sys
 import csv
 import re
+import json
+import subprocess
 from pwem.objects import AtomStruct, Sequence, SetOfSequences
 # from pyworkflow.constants import BETA
 from pyworkflow.protocol import (params,
@@ -42,7 +44,7 @@ from pyworkflow.utils.path import makePath
 from pyworkflow.object import Integer, String
 from pwem.protocols import EMProtocol
 from pwem.convert.atom_struct import AtomicStructHandler, fromCIFToPDB
-from ..constants import CLUSTALO, colab_env, jax_api, colabfold_repo
+from ..constants import CLUSTALO, colab_env, jax_api, colabfold_repo, conda_env
 from pwem.convert.sequence import alignClustalSequences
 from Bio import SeqIO, AlignIO
 from Bio.PDB import PDBParser, is_aa
@@ -516,7 +518,17 @@ class CarbonaraSamplingSequence(EMProtocol):
             errors.append('Only one GPU can be used.')
 
         # Check that CLUSTALO program exists
-        if not (self.is_tool(CLUSTALO)):
+        result = subprocess.run(
+            ["conda", "env", "list", "--json"],
+             capture_output=True,
+             text=True,
+             check=True
+        )
+        envs = json.loads(result.stdout)["envs"]
+        env_path = next(p for p in envs if p.endswith(f"/{conda_env}"))
+        bin_dir = env_path + ("/Scripts" if os.name == "nt" else "/bin")
+
+        if not (self.is_tool(os.path.join(bin_dir,CLUSTALO))):
             errors.append("Clustal-omega program missing.\n "
                           "You need it to run this program.\n"
                           "Please install Clustal-omega:\n"
