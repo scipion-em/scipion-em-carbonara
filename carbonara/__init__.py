@@ -30,6 +30,8 @@ import sys
 import pwem
 import pyworkflow.utils as pwutils
 from scipion.install.funcs import VOID_TGZ
+import subprocess
+import json
 # from pwem.constants import MAXIT
 
 from .constants import (CARBONARA_ENV_ACTIVATION, conda_env,
@@ -60,6 +62,19 @@ class Plugin(pwem.Plugin):
     @classmethod
     def getEnviron(cls):
         environ = pwutils.Environ(os.environ)
+        # add conda bin path since clustalo has been installed here
+        result = subprocess.run(
+            ["conda", "env", "list", "--json"],
+             capture_output=True,
+             text=True,
+             check=True
+        )
+        envs = json.loads(result.stdout)["envs"]
+        env_path = next(p for p in envs if p.endswith(f"/{conda_env}"))
+        bin_dir = env_path + ("/Scripts" if os.name == "nt" else "/bin")
+
+        environ.update({'PATH': bin_dir},
+                       position=pwutils.Environ.BEGIN)
         return environ
 
     @classmethod
@@ -113,7 +128,6 @@ class Plugin(pwem.Plugin):
                 if packages:
                     command += packages
 
-            # subprocess.run(command, check=True)
             return command
 
         def getCARBonAraInstallation(version):
@@ -130,6 +144,7 @@ class Plugin(pwem.Plugin):
                 f'{cls.getCondaActivationCmd()}'
                 f'{create_or_update_conda_env(conda_env, python_version="3.9")} && '
                 # Install
+                f'conda run -n {conda_env} conda install -y -c bioconda clustalo && '
                 f'conda run -n {conda_env} {GIT_CLONE_CMD} && '
                 f'{create_or_update_conda_env(colab_env, python_version="3.10")} && '
                 f'conda run -n {colab_env} pip install --upgrade "jax[cuda12]" -f {jax_api} && '
