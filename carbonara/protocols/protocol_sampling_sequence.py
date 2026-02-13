@@ -28,28 +28,23 @@
 # **************************************************************************
 
 import os
-import sys
 import csv
 import re
 import json
 import subprocess
 from pwem.objects import AtomStruct, Sequence, SetOfSequences
-# from pyworkflow.constants import BETA
 from pyworkflow.protocol import (params,
                                  LEVEL_ADVANCED,
                                  GPU_LIST,
                                  USE_GPU)
-from pyworkflow.utils import Message
-from pyworkflow.utils.path import makePath
-from pyworkflow.object import Integer, String
+from pyworkflow.utils import Message, greenStr
 from pwem.protocols import EMProtocol
 from pwem.convert.atom_struct import AtomicStructHandler, fromCIFToPDB
-from ..constants import CLUSTALO, colab_env, jax_api, colabfold_repo, conda_env
+from ..constants import CLUSTALO, conda_env
 from pwem.convert.sequence import alignClustalSequences
-from Bio import SeqIO, AlignIO
+from Bio import SeqIO
 from Bio.PDB import PDBParser, is_aa
 from Bio.SeqUtils import seq1
-from collections import Counter
 
 from carbonara import Plugin
 
@@ -125,7 +120,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                       default=100,
                       label='Number of Sequences', important=True,
                       help='Number of sequences to generate.')
-                      
+
         form.addParam('imprintRadio', params.FloatParam,
                       default=0.5,
                       label='Ratio of prior information', important=True,
@@ -134,13 +129,13 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' prior information. To get higher variability in the sequence you\n'
                            ' have to choose values close to 1.0. All the positions will contain\n'
                            ' prior information to bias the prediction')
-        
+
         form.addParam('computeAlphaFold', params.BooleanParam,
                       label="Compute Alphafold scores?",
                       default=False,
                       help="Select 'Yes' if you want to compute AlphaFold scores for sequence\n"
                             "predictions. Take into account that this process cmay take a while.")
-    
+
         form.addParam('bSampled', params.EnumParam, 
                       choices=self.METHOD_OPTIONS,
                       display=params.EnumParam.DISPLAY_LIST,
@@ -151,14 +146,14 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' diversity while still maintaining reasonable sequence confidence.\n'
                            ' "max" means sampling with maximum confidence. It will result in\n'
                            ' high-confidence predictions but low diversity.')
-        
+
         form.addParam('selectChains', params.BooleanParam,
                       expertLevel=LEVEL_ADVANCED,
                       label="Exclude any CHAINS from sampling?",
                       default=False,
                       help="Select 'Yes' if you want to exclude from sampling any specific chain "
                             "(one or more) of the atom structure.\n")
-        
+
         form.addParam('selectStructureChains', params.StringParam,
                       expertLevel=LEVEL_ADVANCED, 
                       condition=('selectChains==True'),
@@ -168,7 +163,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' which no new sequences will be predicted. Moreover, the sequence\n'
                            ' information of the selected chains will be used as prior information\n'
                            ' for the prediction. "')
-                    # Associate wizard to this param
+                      # Associate wizard to this param
         '''
         TODO: Restore these parameters when they work properly in the carbonara method
         form.addParam('selectKnoumResidues', params.BooleanParam,
@@ -177,7 +172,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                       default=False,
                       help="Select 'Yes' if you want to exclude from sampling any specific residues "
                             "(one or more) of the atom structure.\n")
-                      
+
         form.addParam('selectKnownStructureResidues', params.StringParam, 
                       expertLevel=LEVEL_ADVANCED, 
                       condition=('selectKnoumResidues==True'),
@@ -186,16 +181,16 @@ class CarbonaraSamplingSequence(EMProtocol):
                       help='"Use the wizard on the right to select the list of known resides for\n'
                            ' which no new sequences will be predicted. Moreover, the sequence\n'
                            ' information of the selected positions will be used as prior\n'
-                           ' information for the prediction. "')  
-        # Associate wizard to this parm   
-                     
+                           ' information for the prediction. "')
+        # Associate wizard to this parm
+
         form.addParam('selectUnknounResidues', params.BooleanParam,
                       expertLevel=LEVEL_ADVANCED,
                       label="Select specific RESIDUES for sampling?",
                       default=False,
                       help="Select 'Yes' if you want to select for sampling any specific residues "
                             "(one or more) of the atom structure.\n")
-        
+
         form.addParam('selectUnknownStructureResidues', params.StringParam, 
                       expertLevel=LEVEL_ADVANCED, 
                       condition=('selectUnknounResidues==True'),
@@ -207,15 +202,15 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' the rest of the sequence will be used as prior information for the\n'
                            ' prediction."')  
                     # Associate wizard to this parm  
-        '''             
-                     
+        '''
+
         form.addParam('ignoreAminoacids', params.BooleanParam,
                       expertLevel=LEVEL_ADVANCED,
                       label="Ignore specific AMINOACIDS from sampling?",
                       default=False,
                       help="Select 'Yes' if you want to exclude from sampling any specific aminoacids "
                             "(one or more) of the atom structure.\n")
-        
+
         form.addParam('selectIgnoredAminoacids', AminoListParam,
                       expertLevel=LEVEL_ADVANCED,
                       condition=('ignoreAminoacids==True'),
@@ -225,19 +220,19 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' be completely ignored for the sequence sampling. The prior\n'
                            ' information and sequences generated will not contain the selected\n'
                            ' amino acids."') 
-                      
+
         form.addParam('ignoreHetatm', params.BooleanParam, default=False,
                       expertLevel=LEVEL_ADVANCED,
                       label='Ignore HETATM?',
                       help='By default every atoms included in the input file are used for the\n'
                            ' prediction, such as ligands, lipids, ions, and water.')    
-                      
+
         form.addParam('ignoreWater', params.BooleanParam, default=False,
                       expertLevel=LEVEL_ADVANCED,
                       label='Ignore water molecules?',
                       help='By default water molecules included in the input file are used for\n'
                            ' the prediction.')         
-                                
+
         form.addHidden(USE_GPU, params.BooleanParam, default=True,
                        expertLevel=LEVEL_ADVANCED,
                        label="Use GPU for execution?",
@@ -249,9 +244,9 @@ class CarbonaraSamplingSequence(EMProtocol):
                        condition=('USE_GPU==True'),
                        label="Choose GPU ID (single one)",
                        help="GPU device to be used")
-        
 
     # --------------------------- INSERT steps functions ------------------------------
+
     def _insertAllSteps(self):
         # Insert processing steps
         self._insertFunctionStep(self.preRequisitesStep, needsGPU=False)
@@ -260,7 +255,6 @@ class CarbonaraSamplingSequence(EMProtocol):
 
     # --------------------------- STEPS functions ------------------------------
     def preRequisitesStep(self):
-
         # get atom structure PDBx/mmCIF file name
 
         fileName = self.atomStruct.get().getFileName()
@@ -271,12 +265,13 @@ class CarbonaraSamplingSequence(EMProtocol):
             atomStructReName = os.path.abspath(
                 self._getExtraPath(os.path.basename(
                     os.path.splitext(self.atomStructName)[0] + ".pdb")))
-            fromCIFToPDB(self.atomStructName, atomStructReName, log = self._log)
-            self.atomStructName =  atomStructReName
-        
+            fromCIFToPDB(
+                self.atomStructName, atomStructReName, log=self._log)
+            self.atomStructName = atomStructReName
+
         # get a dict of chains with residues
         h = AtomicStructHandler()
-        h.read(self.atomStructName) 
+        h.read(self.atomStructName)
         h.getStructure()
         listOfChains, listOfResidues = h.getModelsChains()
 
@@ -299,48 +294,48 @@ class CarbonaraSamplingSequence(EMProtocol):
         print("self.BINDER: ", self.BINDER)
 
     def processStep(self):
-    
         args = []
-        
+
         # number of atom structures
         args.extend(["--num_sequences", str(self.numSamples.get())])
-        
+
         # ratio of prior information
         args.extend(["--imprint_ratio", str(self.imprintRadio.get())])
-                    
-        # sampling method  
+
+        # sampling method
         args.extend(["--sampling_method", self.METHOD_OPTIONS[self.bSampled.get()]])
 
-        # excluded chains        
-        if (self.selectChains==True and 
-            self.selectStructureChains.get()):
+        # excluded chains
+        if self.selectChains and \
+           self.selectStructureChains.get():
             chains = str(self.selectStructureChains.get())
             args.extend(["--known_chains", chains.replace(" ", "")])
         '''
         TODO: Restore this parameter when it works in carbonara method
 
-        # excluded residues        
-        if (self.selectKnoumResidues==True and 
+        # excluded residues
+        if (self.selectKnoumResidues==True and
             self.selectKnownStructureResidues.get()):
             knownResidues = str(self.selectKnownResidues.get())
-            args.extend(["--known_positions", knownResidues])  
-        
+            args.extend(["--known_positions", knownResidues])
+
         # included residues  
         if (self.selectUnknounResidues==True and 
             self.selectUnknownStructureResidues.get()):
             unknownResidues = str(self.selectUnknownStructureResidues.get())
             args.extend(["--unknown_positions", unknownResidues]) 
         '''
-            
+
         # ignored aminoacid
-        if (self.ignoreAminoacids==True and 
-            self.selectIgnoredAminoacids.get()):
+        if self.ignoreAminoacids and\
+           self.selectIgnoredAminoacids.get():
             ignoredResidues = str(self.selectIgnoredAminoacids.get())
-            args.extend(["--ignored_amino_acids", ignoredResidues.replace(" ", "")]) 
-        
+            args.extend(["--ignored_amino_acids",
+                        ignoredResidues.replace(" ", "")])
+
         # hetatm included
         if self.ignoreHetatm:
-            args.extend(["--ignore_hetatm"]) 
+            args.extend(["--ignore_hetatm"])
 
         # water included
         if self.ignoreWater:
@@ -349,9 +344,10 @@ class CarbonaraSamplingSequence(EMProtocol):
         # use GPU
         if not self.useGpu:
             args.extend(["--device", "cpu"])
+            print("I'm using CPU ")
         else:
             args.extend(["--device", "cuda"])
-            os.environ["CUDA_VISIBLE_DEVICES"] = ("%s" % self.getGpuList()[0])  # selected GPU
+            os.environ["CUDA_VISIBLE_DEVICES"] = ("%s" % self.getGpuList()[0])
             print("I'm using GPU " + ("%s" % self.getGpuList()[0]))
 
         # pdb_filepath
@@ -372,58 +368,66 @@ class CarbonaraSamplingSequence(EMProtocol):
         self.clustalOAlignment()
 
         # Summary of alignment with consensus
-        summ_align_file = os.path.abspath(self._getExtraPath("clustal_summary.aln")) 
+        summ_align_file = os.path.abspath(
+            self._getExtraPath("clustal_summary.aln"))
         self.filter_file_lines(self.outFile, summ_align_file)
 
         # Generation of alphafold predictions
-        if self.computeAlphaFold == True:
-            if self.COMPLEX == True:
+        if self.computeAlphaFold:  # == True:
+            if self.COMPLEX:  # == True:
                 # AlphaFold prediction for complex (two or more proteins)
-                # Scores pDDT, pTM, ipTM (this one null in case complex of one protein)
+                # Scores pDDT, pTM, ipTM (this one null in case complex
+                # of one protein)
                 print("Running colabfold_batch, this may take a while...")
                 merged_multimer_folder_path = os.path.abspath(
-                    self._getExtraPath("merged.fasta")) 
-                alphafold_subdirectory_multimer= "alphafold_predictions_multimer"
+                    self._getExtraPath("merged.fasta"))
+                alphafold_subdirectory_multimer =\
+                    "alphafold_predictions_multimer"
                 self.multimer_folder_path = os.path.join(
                     self.dir_path, alphafold_subdirectory_multimer)
-                self.compute_alphafold(merged_multimer_folder_path, self.multimer_folder_path)
+                self.compute_alphafold(
+                    merged_multimer_folder_path, self.multimer_folder_path)
 
-            if self.BINDER == True:
-                # AlphaFold predictions for the only protein sequence sampled in a complex
+            if self.BINDER:  # == True:
+                # AlphaFold predictions for the only protein sequence sampled
+                # in a complex
                 # or for inputs of one protein
                 # Scores pDDT, pTM
-                alphafold_subdirectory_binder= "alphafold_predictions_binder"
+                alphafold_subdirectory_binder = "alphafold_predictions_binder"
                 self.binder_folder_path = os.path.join(
                     self.dir_path, alphafold_subdirectory_binder)
-                if  len(self.chains) > 1:
+                if len(self.chains) > 1:
                     # case complex
                     merged_binder_folder_path = os.path.abspath(
                         self._getExtraPath("merged_binder.fasta"))
                     self.extract_binder_chain_from_aln_file(
-                        merged_multimer_folder_path, self.idx, merged_binder_folder_path)
+                        merged_multimer_folder_path,
+                        self.idx,
+                        merged_binder_folder_path)
                     self.compute_alphafold(
                         merged_binder_folder_path, self.binder_folder_path)
-                if  len(self.chains) == 1:
+                if len(self.chains) == 1:
                     # case one only protein
                     merged_multimer_folder_path = os.path.abspath(
-                        self._getExtraPath("merged.fasta")) 
+                        self._getExtraPath("merged.fasta"))
                     self.compute_alphafold(
                         merged_multimer_folder_path, self.binder_folder_path)
 
         # Summarize sequence scores in a file
         output_scores_csv_file = os.path.join(self.dir_path, "sorted_scores.csv")
-        self.extract_scores_from_fasta(self.subdir_path, output_scores_csv_file)
+        self.extract_scores_from_fasta(
+            self.subdir_path, output_scores_csv_file)
 
-        if self.computeAlphaFold == True:
+        if self.computeAlphaFold:  # == True:
             metrics_complex = None
             metrics_binder = None
 
             # Extract if they are not None
 
             if (self.COMPLEX == True and
-                os.path.exists(os.path.join(self.multimer_folder_path, "log.txt"))):
-                log_file = os.path.join(self.multimer_folder_path, "log.txt")
-                metrics_complex= self.extract_metrics_from_log_complex(log_file)
+               os.path.exists(os.path.join(self.multimer_folder_path, "log.txt"))):
+               log_file = os.path.join(self.multimer_folder_path, "log.txt")
+               metrics_complex= self.extract_metrics_from_log_complex(log_file)
 
             if (self.BINDER == True and 
                 os.path.exists(os.path.join(self.binder_folder_path, "log.txt"))):
@@ -455,7 +459,7 @@ class CarbonaraSamplingSequence(EMProtocol):
             if filename.endswith(".fasta"):
                 path = os.path.join(self.subdir_path, filename)
                 sequence = self.extract_sequence_from_file(path)
-                label= os.path.splitext(filename)[0]
+                label = os.path.splitext(filename)[0]
 
                 if path in filepath_list:
                     seq = Sequence()
@@ -485,7 +489,7 @@ class CarbonaraSamplingSequence(EMProtocol):
         # in a folder call alphafold_predictions_multimer 
         # and/or alphafold_predictions_binder
         # create output: atom structures
-            if self.COMPLEX == True:
+            if self.COMPLEX:  # == True:
                 for filename in sorted(os.listdir(self.multimer_folder_path)):
                     if filename.endswith(".pdb") or filename.endswith(".cif"):
                         path = os.path.join(self.subdir_path, filename)
@@ -494,7 +498,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                         keyword = filename.split("_unrelaxed_")[0] + "_complex"
                         outputs[keyword] = pdb
                   
-            if self.BINDER == True:
+            if self.BINDER:  # == True:
                 for filename in sorted(os.listdir(self.binder_folder_path)):
                     if filename.endswith(".pdb") or filename.endswith(".cif"):
                         path = os.path.join(self.subdir_path, filename)
@@ -751,14 +755,25 @@ class CarbonaraSamplingSequence(EMProtocol):
         return filepaths
 
     def compute_alphafold(self, in_folder_path, out_folder_path):
-        command = (
-                   f'conda run -n colabfold colabfold_batch --num-models 1 {in_folder_path} {out_folder_path}'           
-        )
-        # Print command in red
-        print(f"\033[31mcommand: {command}\033[0m", file=sys.stderr)
+        command = f'conda run -n colabfold colabfold_batch --num-models 1 {in_folder_path} {out_folder_path}'
 
+        self._log.info(greenStr(f"Running command: {command}"))
+        # print(f"\033[31mcommand: {command}\033[0m", file=sys.stdout)
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+
+        stdout = result.stdout
+        stderr = result.stderr
+        return_code = result.returncode
+        self._log.info(f"Command stdout: {stdout}")
+        self._log.info(f"Command stderr: {stderr}")
+        self._log.info(f"Command return code: {return_code}")
         # Execute command
-        os.system(str(command))
+        # os.system(command)
 
     def extract_binder_chain_from_aln_file(self, in_folder_path, chain_index, out_folder_path):
         """
