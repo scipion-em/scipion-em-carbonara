@@ -91,7 +91,177 @@ class AminoListValidator(params.Conditional):
 class CarbonaraSamplingSequence(EMProtocol):
     """
     CARBonAra is an automatic method that generates multiple sequences
-    able to fold in a certain structural configuration (atom structure used as input). 
+    able to fold in a certain structural configuration (atom structure used as input).
+
+    AI Generated:
+
+    Carbonara Sampling Sequence (CarbonaraSamplingSequence) — User Manual
+        Overview
+
+        The Carbonara Sampling Sequence protocol is designed to generate new
+        protein sequences that are compatible with a given structural scaffold.
+        Starting from an experimentally determined or computationally derived
+        atomic structure, the protocol predicts alternative amino acid sequences
+        that are expected to preserve the overall fold and structural organization
+        of the original protein architecture.
+
+        This type of workflow is especially useful in protein engineering,
+        binder optimization, sequence diversification, and exploratory design
+        studies where the user wants to investigate which sequence variants may
+        remain structurally compatible with a target fold. The protocol combines
+        structural information with probabilistic sequence sampling strategies
+        to generate multiple candidate sequences with varying levels of diversity
+        and confidence.
+
+        Inputs and Structural Context
+
+        The main input is an atomic structure in PDB or mmCIF format. The protocol
+        interprets this structure as the scaffold that defines the spatial and
+        biochemical environment guiding sequence generation. During preprocessing,
+        hydrogens and side-chain information are simplified to focus the prediction
+        on the structural backbone and overall architecture.
+
+        The protocol supports both single-chain proteins and multimeric complexes.
+        In complexes, users may preserve selected chains as fixed structural
+        context while redesigning only specific partners. This is particularly
+        relevant in binder design workflows, interface optimization, or studies
+        of protein-protein recognition.
+
+        Sequence Sampling Strategy
+
+        Sequence generation is controlled through a sampling procedure that balances
+        structural compatibility with sequence diversity. The number of generated
+        sequences can be adjusted depending on whether the user wants a small set
+        of highly confident candidates or a broader exploration of sequence space.
+
+        The imprint ratio parameter regulates how strongly the prediction remains
+        biased toward prior sequence information. Lower variability generally
+        produces sequences closer to the original scaffold, while higher variability
+        encourages exploration of alternative compatible solutions. Biologically,
+        this parameter controls the balance between conservation and innovation.
+
+        Two main sampling modes are available. The maximum-confidence strategy
+        prioritizes the most probable amino acids at each position, typically
+        yielding conservative and stable predictions with lower diversity. The
+        probabilistic sampling strategy instead introduces stochastic exploration,
+        generating a wider variety of sequences while still maintaining structural
+        plausibility. This second mode is often preferred in protein engineering
+        campaigns seeking novel sequence solutions.
+
+        Chain and Residue Control
+
+        Advanced options allow selective control over which structural regions are
+        redesigned. Entire chains can be excluded from sampling and used instead
+        as fixed contextual information during prediction. This capability is
+        especially important for multimeric systems where only one partner should
+        be redesigned while preserving the remaining assembly.
+
+        The protocol also supports excluding specific amino acids from the sampling
+        process. This can be useful for avoiding chemically undesirable residues,
+        reducing aggregation propensity, eliminating reactive side chains, or
+        adapting sequences to experimental constraints such as synthesis or
+        expression limitations.
+
+        Structural Components and Environmental Information
+
+        By default, the protocol incorporates additional structural components
+        such as ligands, ions, lipids, and water molecules during prediction.
+        These elements may contribute biologically meaningful environmental
+        information that influences sequence compatibility.
+
+        However, users may optionally ignore heteroatoms or solvent molecules.
+        This is useful when the surrounding environment is uncertain, when the
+        structure contains crystallographic artifacts, or when the goal is to
+        focus exclusively on intrinsic protein features.
+
+        GPU Acceleration and Computational Execution
+
+        The protocol supports both CPU and GPU execution modes. GPU acceleration
+        is strongly recommended for large systems or high-throughput sequence
+        generation because sampling and downstream structural evaluation can
+        become computationally intensive.
+
+        During execution, the protocol automatically prepares the structural
+        scaffold, launches the CARBonAra sequence generation engine, collects
+        the generated sequences, and organizes the outputs into standardized
+        sequence datasets suitable for downstream structural biology workflows.
+
+        Sequence Alignment and Comparative Analysis
+
+        After sequence generation, the protocol automatically aligns all predicted
+        sequences together with the original scaffold sequence using Clustal Omega.
+        This alignment provides an immediate overview of sequence conservation,
+        variability, and consensus regions across the generated ensemble.
+
+        From a biological perspective, the alignment is highly informative because
+        conserved positions often correspond to structurally or functionally
+        critical residues, while variable positions may indicate regions tolerant
+        to mutation or diversification.
+
+        Duplicate sequences are automatically filtered so that downstream analyses
+        focus only on unique sequence solutions.
+
+        AlphaFold Structural Evaluation
+
+        Optionally, the protocol can evaluate generated sequences using AlphaFold.
+        This step predicts structural confidence metrics for the sampled sequences
+        and provides additional validation regarding whether the generated variants
+        are likely to maintain the desired fold.
+
+        In multimeric systems, the protocol supports two complementary analyses.
+        One evaluates the entire complex, including interface quality and predicted
+        interaction confidence. The other focuses specifically on the redesigned
+        binder or target chain. This distinction is particularly useful in
+        interface engineering and therapeutic binder design.
+
+        Reported metrics may include pLDDT, pTM, and ipTM scores, which together
+        provide estimates of local structural confidence, global fold quality,
+        and interface reliability. These values help prioritize the most promising
+        candidates for experimental validation.
+
+        Output Data and Interpretation
+
+        The protocol produces several categories of outputs. The primary results
+        are the generated protein sequences, organized individually and as a
+        complete sequence collection. Alignment files summarizing sequence
+        conservation are also generated automatically.
+
+        When AlphaFold evaluation is enabled, predicted structural models are
+        additionally produced for both complete complexes and redesigned binders.
+        These structures can be directly inspected, visualized, or incorporated
+        into downstream modeling workflows.
+
+        A summary CSV file is also generated, integrating sequence information,
+        CARBonAra confidence scores, and AlphaFold-derived quality metrics. This
+        table serves as a practical ranking system for identifying the most
+        biologically promising candidates.
+
+        Practical Recommendations
+
+        In most biological applications, it is advisable to begin with moderate
+        sequence diversity and a relatively conservative imprint ratio. This
+        typically yields structurally reliable candidates while still exploring
+        useful sequence variation.
+
+        For binder optimization or interface redesign, preserving contextual
+        chains while redesigning only the interacting partner often provides
+        more realistic predictions. In contrast, exploratory protein design
+        studies may benefit from broader sampling diversity.
+
+        AlphaFold validation is highly recommended when computational resources
+        permit, especially before experimental synthesis or screening. Sequences
+        with strong structural confidence and favorable interface metrics are
+        generally the best candidates for downstream validation.
+
+        Final Perspective
+
+        The Carbonara Sampling Sequence protocol provides a structure-guided
+        framework for generating and evaluating alternative protein sequences
+        compatible with a target fold. By combining probabilistic sampling,
+        structural context, alignment analysis, and optional AlphaFold validation,
+        the protocol enables biologically meaningful exploration of protein
+        sequence space while maintaining compatibility with experimentally
+        relevant structural architectures.
     """
     _label = 'sampling sequence'
     _program = ""
@@ -113,7 +283,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                            ' sequences able to fold in agreement with the architecture\n' 
                            ' of that scaffold structure. The program automatically removes\n'
                            ' hydrogens and side chains from the scaffold. The default is to\n' 
-                           ' keep HETATM and water, but this behavior can be toggled.') 
+                           ' keep HETATM and water, but this behavior can be toggled.')
 
         form.addParam('numSamples', params.IntParam,
                       validators=[params.Positive],
@@ -136,7 +306,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                       help="Select 'Yes' if you want to compute AlphaFold scores for sequence\n"
                             "predictions. Take into account that this process cmay take a while.")
 
-        form.addParam('bSampled', params.EnumParam, 
+        form.addParam('bSampled', params.EnumParam,
                       choices=self.METHOD_OPTIONS,
                       display=params.EnumParam.DISPLAY_LIST,
                       default=1,
@@ -155,7 +325,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                             "(one or more) of the atom structure.\n")
 
         form.addParam('selectStructureChains', params.StringParam,
-                      expertLevel=LEVEL_ADVANCED, 
+                      expertLevel=LEVEL_ADVANCED,
                       condition=('selectChains==True'),
                       default=None, important=True,
                       label='Excluded chains',
@@ -219,19 +389,19 @@ class CarbonaraSamplingSequence(EMProtocol):
                       help='"Write the list of aminoacids that will\n'
                            ' be completely ignored for the sequence sampling. The prior\n'
                            ' information and sequences generated will not contain the selected\n'
-                           ' amino acids."') 
+                           ' amino acids."')
 
         form.addParam('ignoreHetatm', params.BooleanParam, default=False,
                       expertLevel=LEVEL_ADVANCED,
                       label='Ignore HETATM?',
                       help='By default every atoms included in the input file are used for the\n'
-                           ' prediction, such as ligands, lipids, ions, and water.')    
+                           ' prediction, such as ligands, lipids, ions, and water.')
 
         form.addParam('ignoreWater', params.BooleanParam, default=False,
                       expertLevel=LEVEL_ADVANCED,
                       label='Ignore water molecules?',
                       help='By default water molecules included in the input file are used for\n'
-                           ' the prediction.')         
+                           ' the prediction.')
 
         form.addHidden(USE_GPU, params.BooleanParam, default=True,
                        expertLevel=LEVEL_ADVANCED,
@@ -289,7 +459,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                     self.idx = self.chains.index(str(self.binder[0]))
         elif len(self.chains) == 1:
             self.BINDER = True
-            self.idx = 0   
+            self.idx = 0
         print("self.COMPLEX: ", self.COMPLEX)
         print("self.BINDER: ", self.BINDER)
 
@@ -429,20 +599,20 @@ class CarbonaraSamplingSequence(EMProtocol):
                log_file = os.path.join(self.multimer_folder_path, "log.txt")
                metrics_complex= self.extract_metrics_from_log_complex(log_file)
 
-            if (self.BINDER == True and 
+            if (self.BINDER == True and
                 os.path.exists(os.path.join(self.binder_folder_path, "log.txt"))):
                 log_file = os.path.join(self.binder_folder_path, "log.txt")
                 metrics_binder = self.extract_metrics_from_log_binder(log_file)
-            
+
             # Merge and write csv
             self.merge_and_write_csv(
-                self.rows, output_scores_csv_file, 
-                    metrics_complex=metrics_complex, 
+                self.rows, output_scores_csv_file,
+                    metrics_complex=metrics_complex,
                     metrics_binder=metrics_binder)
 
     def createOutputStep(self):
         """Register sequences generated"""
-        
+
         outputs = {}
 
         setSeq = SetOfSequences()
@@ -473,10 +643,10 @@ class CarbonaraSamplingSequence(EMProtocol):
 
                     # create output: setOfSequences
                     sequences.append(seq)
-        
+
         for seq in sequences:
             outputSequences.append(seq)
-        
+
         self._defineOutputs(outputSequences=outputSequences)
 
         # total number of unique sequences
@@ -486,7 +656,7 @@ class CarbonaraSamplingSequence(EMProtocol):
         """Register alphafold predictions generated"""
         if self.computeAlphaFold == True:
         # check if .pdb files exist before registering
-        # in a folder call alphafold_predictions_multimer 
+        # in a folder call alphafold_predictions_multimer
         # and/or alphafold_predictions_binder
         # create output: atom structures
             if self.COMPLEX:  # == True:
@@ -497,7 +667,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                         pdb.setFileName(path)
                         keyword = filename.split("_unrelaxed_")[0] + "_complex"
                         outputs[keyword] = pdb
-                  
+
             if self.BINDER:  # == True:
                 for filename in sorted(os.listdir(self.binder_folder_path)):
                     if filename.endswith(".pdb") or filename.endswith(".cif"):
@@ -506,11 +676,11 @@ class CarbonaraSamplingSequence(EMProtocol):
                         pdb.setFileName(path)
                         keyword = filename.split("_unrelaxed_")[0] + "_binder"
                         outputs[keyword] = pdb
-            
+
             if outputs:
                 self._defineOutputs(**outputs)
 
-   
+
 
     # --------------------------- INFO functions ----------------------------
     def _validate(self):
@@ -558,12 +728,12 @@ class CarbonaraSamplingSequence(EMProtocol):
             summary.append("%s *unique sequences* predicted " % number_unique_sequences)
             summary.append("")
             summary.append("Alignment generated with Clustal Omega and saved in:")
-            
+
             clustal_aln_path = os.path.join(dir_path, "clustal.aln")
             summary.append(" %s " % clustal_aln_path)
             summary.append("")
 
-            # Showing ClustalOmega alignment symmary with a monospaced font 
+            # Showing ClustalOmega alignment symmary with a monospaced font
 
             clustal_aln_summmary_path = os.path.join(dir_path, "clustal_summary.aln")
             try:
@@ -577,34 +747,34 @@ class CarbonaraSamplingSequence(EMProtocol):
                 summary.append(f"File not found: {clustal_aln_summmary_path}")
             except Exception as e:
                 summary.append(f"Error reading file: {e}")
-            
+
         else:
             summary.append(Message.TEXT_NO_OUTPUT_FILES)
         return summary
-    
+
     def _citations(self):
         return ['Krapp2024-dw']
-    
+
     def clustalOAlignment(self):
 
         # generate file with fasta sequences
-        inFile = self.merge_fasta_to_align(self.subdir_path) 
+        inFile = self.merge_fasta_to_align(self.subdir_path)
 
         # generate output file and run clustal
-        self.outFile = os.path.abspath(self._getExtraPath("clustal.aln")) 
-        cline = alignClustalSequences(inFile, self.outFile)  
+        self.outFile = os.path.abspath(self._getExtraPath("clustal.aln"))
+        cline = alignClustalSequences(inFile, self.outFile)
 
         # new clustalo command line
-        # clustalo -i input.fasta -o aligned.aln --outfmt=clustal --force 
+        # clustalo -i input.fasta -o aligned.aln --outfmt=clustal --force
         args = ' --outfmt=clustal --force '
         # cline is a biophythom object let us
         # convert it to a str before using it in scipion
         # TODO: Solve str bug in chimera modeller
         self.runJob(str(cline), args)
- 
-        
+
+
     def merge_fasta_to_align(self, folder_path):
-        inFile =  os.path.abspath(self._getExtraPath("merged.fasta")) 
+        inFile =  os.path.abspath(self._getExtraPath("merged.fasta"))
         self.wholeSequence = self.extract_protein_sequences(self.atomStructName)
         with open(inFile, 'w') as out_f:
 
@@ -615,7 +785,7 @@ class CarbonaraSamplingSequence(EMProtocol):
 
             #include all the sampled sequences next without duplicates
             filepath_list = self.sel_files_seq_unique(folder_path)
-            
+
             for filename in os.listdir(folder_path):
                 if filename.endswith('.fasta'):
                     filepath = os.path.join(folder_path, filename)
@@ -629,7 +799,7 @@ class CarbonaraSamplingSequence(EMProtocol):
         """Check whether `name` is on PATH."""
         from shutil import which
         return which(name) is not None
-    
+
     def extract_protein_sequences(self, pdb_file):
         parser = PDBParser(QUIET=True)
         structure = parser.get_structure("structure", pdb_file)
@@ -645,7 +815,7 @@ class CarbonaraSamplingSequence(EMProtocol):
             break  # Only process the first model
 
         return ':'.join(chain_sequences)
-    
+
     def extract_scores_from_fasta(self, folder_path, output_scores_csv_file):
         """
         Generate a CSV file with columns: file_name, sequence, score.
@@ -657,7 +827,7 @@ class CarbonaraSamplingSequence(EMProtocol):
         name = os.path.basename(
             os.path.splitext(self.atomStructName)[0])
         self.rows.append([name, self.wholeSequence, 1])
-        
+
         #include all the sampled sequences without duplicates
         filepath_list = self.sel_files_seq_unique(folder_path)
 
@@ -682,7 +852,7 @@ class CarbonaraSamplingSequence(EMProtocol):
         if self.computeAlphaFold == False:
             # sort rows by score descending
             self.rows.sort(key=lambda x: x[2], reverse=True)
-        
+
            # write to CSV
             with open(output_scores_csv_file, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
@@ -703,7 +873,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                     # Keep header and empty lines
                     if not stripped or stripped.startswith("CLUSTAL"):
                         filtered_lines.append(line)
-                        continue 
+                        continue
 
                     # Keep consensus lines
                     if stripped[0] in "*:." or line.startswith(" "):
@@ -734,10 +904,10 @@ class CarbonaraSamplingSequence(EMProtocol):
             for line in f:
                 line = line.strip()
                 if not line or line.startswith('>'):
-                    continue  
+                    continue
                 sequence_lines.append(line)
         return ''.join(sequence_lines)
-    
+
     def sel_files_seq_unique(self, folder_path):
         # method to select CARBonAra output sequence files avoiding sequence duplicates
         seq_unique = []
@@ -836,7 +1006,7 @@ class CarbonaraSamplingSequence(EMProtocol):
                 seq_name = None
 
         return results
-    
+
     def extract_metrics_from_log_binder(self, log_file):
         """
         Extraction of list [filename, pLDDT, pTM] from a localcolabfold log
@@ -870,12 +1040,12 @@ class CarbonaraSamplingSequence(EMProtocol):
                 seq_name = None
 
         return results
-        
 
-    def merge_and_write_csv(self, seq_scores, output_file, 
+
+    def merge_and_write_csv(self, seq_scores, output_file,
                             metrics_complex=None, metrics_binder=None):
         """
-        Merge score lists to generate a unique one in different cases of 
+        Merge score lists to generate a unique one in different cases of
         alphafold predictions.
         Cases:
             - seq_scores + metrics from complex
@@ -884,12 +1054,12 @@ class CarbonaraSamplingSequence(EMProtocol):
         """
         # Convert seq_scores to dict {file_name: {sequence, score}}
         merged = {}
-        
+
         for row in seq_scores:
             print("row: ", row)
             file_name, sequence, score = row
-            merged[file_name] = {"file_name": file_name, 
-                                 "sequence": sequence, 
+            merged[file_name] = {"file_name": file_name,
+                                 "sequence": sequence,
                                  "score": score}
 
         # bind metrics from complex if they are not None
