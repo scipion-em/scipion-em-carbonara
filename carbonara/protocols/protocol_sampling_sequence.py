@@ -759,7 +759,7 @@ class CarbonaraSamplingSequence(EMProtocol):
             if self.COMPLEX:
                 for filename in sorted(os.listdir(self.multimer_folder_path)):
                     if filename.endswith(".pdb") or filename.endswith(".cif"):
-                        path = self.multimer_folder_path / filename
+                        path = os.path.join(self.multimer_folder_path, filename)
                         pdb = AtomStruct()
                         pdb.setFileName(path)
                         keyword = filename.split("_unrelaxed_")[0] + "_complex"
@@ -805,7 +805,7 @@ class CarbonaraSamplingSequence(EMProtocol):
         )
         envs = json.loads(result.stdout)["envs"]
         env_path = next(p for p in envs if p.endswith(f"/{conda_env}"))
-        bin_dir = env_path + ("/Scripts" if os.name == "nt" else "/bin")
+        bin_dir = os.path.join(env_path, ("/Scripts" if os.name == "nt" else "/bin"))
         self._log.info(f"Checking for Clustal Omega in: {bin_dir}")
         if not (self.is_tool(os.path.join(bin_dir,CLUSTALO))):
             errors.append("Clustal-omega program missing.\n "

@@ -147,7 +147,7 @@ class CarbonaraViewer(ProtocolViewer):
                                     'to visualize its atom structure. If a binder ' \
                                     'was associated to this complex, the structure' \
                                     ' of the binder will be also shown.')
-            else:
+            else:  # TODO remove for the case in which we have both complex and binder
 
                 if os.path.exists(
                     os.path.join(self.dir_path, "alphafold_predictions_binder")): 
@@ -416,11 +416,3 @@ class CarbonaraViewer(ProtocolViewer):
         chimeraPlugin.runChimeraProgram(chimeraPlugin.getProgram(), fnCmd + "&",
                                         cwd=os.getcwd())
         return []
-
-    # def errorWindow(tkParent, msg):
-    #     try:
-    #         showerror("Error",  # bar title
-    #               msg,  # message
-    #               parent=tkParent)
-    #     except Exception as ex:
-    #         print("Error:", msg)
