@@ -25,20 +25,29 @@
 # *
 # **************************************************************************
 
-# V1 = "1.0.0"
+"""
+Configuration constants for the scipion-em-carbonara plugin.
+
+This module centralises every tunable value used by the plugin:
+program names, conda-environment identifiers, repository URLs with
+the pinned CARBonAra commit, and auxiliary-tool names.
+"""
+
+# --- Program and environment names ----------------------------------------
 CARBONARA_PROGRAM = 'carbonara'
 CARBONARA_ENV_ACTIVATION = "CARBONARA_ENV_ACTIVATION"
-# DEFAULT_ACTIVATION_CMD = "DEFAULT_ACTIVATION_CMD"
+conda_env = "carbonara"
+colab_env = "colabfold"
+
+# --- Repository URLs  -----------------------------------
 repo_url = "https://github.com/LBM-EPFL/CARBonAra"
-# string after '@' is the commit hash to be installed
-# if this hash is modified the wrapper version should be increased
+# The commit hash after '@' pins the installed CARBonAra version.
 GIT_CLONE_CMD = "pip install -vv git+https://github.com/LBM-EPFL/CARBonAra.git@1ed6359f299e14274bd0372bc3fb0594506decc8"
 jax_api = "https://storage.googleapis.com/jax-releases/jax_releases.html"
 colabfold_repo = "git+https://github.com/sokrypton/ColabFold"
-colab_env = "colabfold"
 repo_name = "CARBonAra"
-conda_env = "carbonara"
 
+# --- Auxiliary tool names -------------------------------------------------
 CLUSTALO = 'clustalo'
 
 

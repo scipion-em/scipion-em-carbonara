@@ -26,17 +26,29 @@
 # *
 # **************************************************************************
 
+"""
+Wizard registrations for the CarbonaraSamplingSequence protocol.
+
+Wizards provide interactive GUI helpers that let users select chains or
+residues from a visualised structure and write the selection back into
+the corresponding protocol parameter.
+"""
+
 from ..protocols import CarbonaraSamplingSequence
 from pwem.wizards import SelectChainSWizard, SelectResidueWizard
 
+# Chain-selection wizard: reads atomStruct, writes selectStructureChains
 SelectChainSWizard().addTarget(protocol=CarbonaraSamplingSequence,
                                targets=['selectStructureChains'],
                                inputs=['atomStruct'],
                                outputs=['selectStructureChains'])
 
-SelectResidueWizard().addTarget(protocol=CarbonaraSamplingSequence,
-                                targets=['selectKnownStructureResidues',
-                                         'selectUnknownStructureResidues'],
-                                inputs=['atomStruct'],
-                                outputs=['selectKnownStructureResidues',
-                                         'selectUnknownStructureResidues'])
+# Residue-selection wizard: currently disabled because the corresponding
+# protocol parameters (selectKnownStructureResidues,
+# selectUnknownStructureResidues) are commented out. Re-enable when restored.
+# SelectResidueWizard().addTarget(protocol=CarbonaraSamplingSequence,
+#                                 targets=['selectKnownStructureResidues',
+#                                          'selectUnknownStructureResidues'],
+#                                 inputs=['atomStruct'],
+#                                 outputs=['selectKnownStructureResidues',
+#                                          'selectUnknownStructureResidues'])

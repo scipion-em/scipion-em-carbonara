@@ -27,7 +27,14 @@
 # **************************************************************************
 
 """
-@ARTICLE{Krapp2024-dw,
+Bibliographic references for the scipion-em-carbonara plugin.
+
+The BibTeX entries below are referenced by key in Plugin._references
+(e.g. 'Krapp2024') and displayed by Scipion's citation system.
+"""
+
+"""
+@ARTICLE{Krapp2024,
   title     = "Context-aware geometric deep learning for protein sequence
                design",
   author    = "Krapp, Lucien F and Meireles, Fernando A and Abriata, Luciano A

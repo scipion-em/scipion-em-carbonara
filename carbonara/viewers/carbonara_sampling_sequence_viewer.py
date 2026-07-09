@@ -25,6 +25,17 @@
 # *
 # **************************************************************************
 
+"""
+Viewer for the CarbonaraSamplingSequence protocol.
+
+Provides GUI access to:
+  - CARBonAra sequence scores (table view)
+  - Sampled sequences (FASTA text editor)
+  - ClustalO alignment (text editor)
+  - ClustalO alignment summary (text editor)
+  - AlphaFold-predicted structures (ChimeraX viewer, if computed)
+"""
+
 import os
 import csv
 import re
@@ -39,6 +50,10 @@ from pwem import Domain
 
 
 def errorWindow(tkParent, msg):
+    """Show an error dialog, falling back to print if Tk is unavailable.
+
+    The tkParent parameter ensures the dialog appears above other windows.
+    """
     try:
         # if tkRoot is null the error message may be behind
         # other windows
@@ -48,20 +63,41 @@ def errorWindow(tkParent, msg):
     except:
         print(("Error:", msg))
 
- 
+
 class CarbonaraViewer(ProtocolViewer):
-    """ Visualize the output of protocol carbonara sampling sequence """
+    """Visualize the output of the CarbonaraSamplingSequence protocol.
+
+    Provides four always-available sections:
+      - Scores: table of CARBonAra and AlphaFold metrics
+      - Sequences: merged FASTA file with all sampled sequences
+      - Alignment: full ClustalO alignment
+      - Alignment Summary: filtered alignment showing reference + consensus
+
+    If AlphaFold was computed, additional sections appear:
+      - Complex structure viewer (multi-chain predictions)
+      - Binder structure viewer (single-chain predictions)
+    Structures are opened in ChimeraX with alphafold B-factor coloring.
+    """
     _label= 'carbonara viewer'
     _environments = [DESKTOP_TKINTER, WEB_DJANGO]
     _targets = [CarbonaraSamplingSequence]
 
     def __init__(self, **kwargs):
+        """Initialise the viewer and reset structure file trackers."""
         ProtocolViewer.__init__(self, **kwargs)
         self.complex_file = None
         self.binder_file = None
 
     def _defineParams(self, form):
+        """Define the viewer form parameters.
+
+        Always shows: Scores, Sequences, Alignment, Alignment Summary.
+        Conditionally shows: Complex structure viewer or Binder structure viewer
+        (depending on which AlphaFold outputs exist).
+        """
         form.addSection(label='Visualization of CARBonAra results')
+
+        # --- Always-available sections ------------------------------------
         group = form.addGroup('Scores')
         group.addParam('displayScores', params.LabelParam,
                        label='CARBonAra sequence scores', 
@@ -82,12 +118,15 @@ class CarbonaraViewer(ProtocolViewer):
                        help='Starting sequence and ClustalOmega identity and similarity' \
                        ' symbols.')
         
+        # --- Conditional AlphaFold structure sections ---------------------
         if self.protocol.computeAlphaFold:
 
             self.atom_structure_complex = []
             self.atom_structure_binder = []
 
             self.dir_path = os.path.abspath(self.protocol._getExtraPath())
+
+            # Show complex viewer if multimer predictions exist
             if os.path.exists(
                 os.path.join(self.dir_path, "alphafold_predictions_multimer")):
                 self.protocol.multimer_folder_path = \
@@ -131,6 +170,12 @@ class CarbonaraViewer(ProtocolViewer):
 
 
     def _getVisualizeDict(self):
+        """Return a mapping from parameter names to visualization callbacks.
+
+        Scipion calls this method to determine which function to invoke when
+        the user clicks a "Show" button in the viewer GUI. Each callback
+        opens the appropriate file or launches ChimeraX for structures.
+        """
         vis_dict = {
             'displayScores': self._showAllScores,
             'displaySequences': self._showSequences,
@@ -138,7 +183,7 @@ class CarbonaraViewer(ProtocolViewer):
             'displayAlignmentSummary': self._showAlignmentSummary,
         }
 
-        # Add complex if it exits and binder does or does not
+        # Add complex structure viewer if multimer predictions exist
         if (self.protocol.computeAlphaFold and 
             os.path.exists(os.path.join(self.dir_path, "alphafold_predictions_multimer"))):
             
@@ -155,7 +200,7 @@ class CarbonaraViewer(ProtocolViewer):
             vis_dict['displayComplexAtomStructure'] = \
                 lambda p=None: self._showStructuresInChimeraX([self.complex_file])
 
-        # Add binder if it exits and complex does not
+        # Add binder structure viewer if binder predictions exist (and no complex)
         if (self.protocol.computeAlphaFold and not
             os.path.exists(os.path.join(self.dir_path, "alphafold_predictions_multimer")) and
             os.path.exists(os.path.join(self.dir_path, "alphafold_predictions_binder"))):
@@ -216,7 +261,10 @@ class CarbonaraViewer(ProtocolViewer):
 
 
     def _showScores(self, headerList, dataList, mesg, title):
+        """Display a table of scores using Scipion's TableView widget.
 
+        Shows an error dialog if dataList is empty.
+        """
         if not dataList:
             errorWindow(self.getTkRoot(), "No data available")
             return
@@ -228,6 +276,11 @@ class CarbonaraViewer(ProtocolViewer):
                   height=len(dataList), width=250, padding=40)
 
     def _showAllScores(self, e=None):
+        """Load the sorted_scores.csv file and display it in a table.
+
+        The 'sequence' column is removed from the display to keep the table
+        compact (sequences can be viewed in the FASTA file instead).
+        """
         self.dir_path = os.path.abspath(self.protocol._getExtraPath())
         csvFile = os.path.join(self.dir_path, "sorted_scores.csv")
 
@@ -258,38 +311,57 @@ class CarbonaraViewer(ProtocolViewer):
         self._showScores(headers, dataList, mesg, title)
 
     def _showSequences(self, obj, **args):
+        """Open the merged FASTA file in a text editor."""
         self.dir_path = os.path.abspath(self.protocol._getExtraPath())
         fastaFile = os.path.join(self.dir_path, "merged.fasta")
         if os.path.exists(fastaFile):
             openTextFileEditor(fastaFile)
 
-    def _showAlignment(self, obj, **args): 
+    def _showAlignment(self, obj, **args):
+        """Open the full ClustalO alignment file in a text editor."""
         self.dir_path = os.path.abspath(self.protocol._getExtraPath())     
         clustalAlignFile = os.path.join(self.dir_path, "clustal.aln")
         if os.path.exists(clustalAlignFile):
             openTextFileEditor(clustalAlignFile)
 
-    def _showAlignmentSummary(self, obj, **args): 
+    def _showAlignmentSummary(self, obj, **args):
+        """Open the filtered ClustalO alignment summary in a text editor.
+
+        The summary shows only the reference sequence and consensus symbols.
+        """
         self.dir_path = os.path.abspath(self.protocol._getExtraPath())
         clustalAlignFileSummaryFile = os.path.join(self.dir_path, "clustal_summary.aln")
         if os.path.exists(clustalAlignFileSummaryFile):
             openTextFileEditor(clustalAlignFileSummaryFile)
 
     def _showStructuresInChimeraX(self, e=None):
+        """Launch ChimeraX to visualize AlphaFold-predicted structures.
+
+        Generates a ChimeraX script (.cxc) that:
+          - Opens coordinate axes for reference
+          - Opens all selected structure files (complex and/or binder)
+          - Colors by B-factor using the AlphaFold pLDDT palette
+          - Optionally superposes binder onto complex using MatchMaker
+
+        The script is written to chimera_output.cxc and executed in the
+        background via the chimera plugin.
+        """
 
         # Atom structures to show
         fileNames = []
         if self.complex_file:
             fileNames.append(self.complex_file)
+            # If binder predictions exist for this complex, include them too
             if (os.path.exists(os.path.join(self.dir_path, "alphafold_predictions_binder"))):
                 self.binder_folder_path = \
                     os.path.join(self.dir_path, "alphafold_predictions_binder")
+                # Match binder files by base name (e.g. "seq1_chainA" for "seq1")
                 baseFileName = self.complex_file.split("/")[-1].split("_unrelaxed_")[0]
 
                 for filename in sorted(
                         os.listdir(self.binder_folder_path)):
                         if (filename.startswith(baseFileName + "_chain") and
-                            filename.endswith(".pdb" or ".cif")):
+                            (filename.endswith(".pdb") or filename.endswith(".cif"))):
                             binder_file = os.path.join(self.binder_folder_path, filename)
                             fileNames.append(binder_file)
                 
@@ -301,7 +373,7 @@ class CarbonaraViewer(ProtocolViewer):
         bildFileName = self.protocol._getExtraPath("axis_output.bild")
         fnCmd = self.protocol._getExtraPath("chimera_output.cxc")
         
-        # Create axes
+        # Create coordinate axes BILD file for visual reference
         dim = 150.
         sampling = 1.
 
@@ -320,31 +392,35 @@ class CarbonaraViewer(ProtocolViewer):
             # reference axis model = 1
             f.write("open %s\n" % bildFileName)
             f.write("cofr 0,0,0\n")  # set center of coordinates
-            # open all fileNames
+            # open all structure files
             for pdbFileName in fileNames:
                 f.write("open %s\n" % pdbFileName)
+            # Color by B-factor using AlphaFold pLDDT palette
             f.write("color by bfactor palette alphafold\n")
+            # If multiple structures, superpose the second onto the first using MatchMaker
             if len(fileNames) > 1:
                 try:
                     filename = fileNames[1]
-                    filename = os.path.basename(pdbFileName)
+                    filename = os.path.basename(filename)
+                    # Extract chain ID from filename (e.g. "seq1_chainA.pdb" -> "A")
                     match = re.search(r'chain([A-Za-z0-9]+)', filename)
                     if match:
                         chain = match.group(1)
+                        # Superpose chain X of model #3 onto chain X of model #2
                         f.write("mmaker #3/%s to #2/%s\n" % (chain, chain))
                 except Exception as e:
                     print("Error writing mmaker command:", e)
 
-        # run in the background
+        # Launch ChimeraX in the background with the generated script
         chimeraPlugin = Domain.importFromPlugin('chimera', 'Plugin', doRaise=True)
         chimeraPlugin.runChimeraProgram(chimeraPlugin.getProgram(), fnCmd + "&",
                                         cwd=os.getcwd())
         return []
 
-    def errorWindow(tkParent, msg):
-        try:
-            showerror("Error",  # bar title
-                  msg,  # message
-                  parent=tkParent)
-        except Exception as ex:
-            print("Error:", msg)
+    # def errorWindow(tkParent, msg):
+    #     try:
+    #         showerror("Error",  # bar title
+    #               msg,  # message
+    #               parent=tkParent)
+    #     except Exception as ex:
+    #         print("Error:", msg)
