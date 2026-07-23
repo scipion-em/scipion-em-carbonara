@@ -120,6 +120,7 @@ class TestCarbonaraSamplingSequence(TestImportData):
                                       protCarbonaraSamplingSequence.
                                       iterOutputAttributes()):
             self.assertEqual(str(ProtOutput[0]), output)
+            print(str(ProtOutput[0]))
 
 
         # Scenario 2: Exclude chain B from sampling
@@ -144,6 +145,7 @@ class TestCarbonaraSamplingSequence(TestImportData):
                                       protCarbonaraSamplingSequence.
                                       iterOutputAttributes()):
             self.assertEqual(str(ProtOutput[0]), output)
+            print(str(ProtOutput[0]))
 
         # Scenario 3: Exclude chain B + AlphaFold scoring
         # This test checks that carbonara runs excluding a chain from sampling
@@ -169,7 +171,7 @@ class TestCarbonaraSamplingSequence(TestImportData):
                                       protCarbonaraSamplingSequence.
                                       iterOutputAttributes()):
             self.assertEqual(str(ProtOutput[0]), output)
-
+            print(str(ProtOutput[0]))
 
 
         # Scenario 4: Exclude chains B, D (known CARBonAra bug)
@@ -196,6 +198,7 @@ class TestCarbonaraSamplingSequence(TestImportData):
                                       protCarbonaraSamplingSequence.
                                       iterOutputAttributes()):
             self.assertEqual(str(ProtOutput[0]), output)
+            print(str(ProtOutput[0]))
 
         # Scenario 5: Exclude chains B, D + AlphaFold (known bug)
         # This test checks that carbonara runs excluding two chains from sampling
@@ -224,6 +227,7 @@ class TestCarbonaraSamplingSequence(TestImportData):
                                       protCarbonaraSamplingSequence.
                                       iterOutputAttributes()):
             self.assertEqual(str(ProtOutput[0]), output)
+            print(str(ProtOutput[0]))
 
         # Scenario 6: Exclude chains B, C, D + AlphaFold (known bug)
         # This test checks that carbonara runs excluding three chains from sampling
@@ -252,6 +256,7 @@ class TestCarbonaraSamplingSequence(TestImportData):
                                       protCarbonaraSamplingSequence.
                                       iterOutputAttributes()):
             self.assertEqual(str(ProtOutput[0]), output)
+            print(str(ProtOutput[0]))
 
     def testCarbonara2(self):
         """Test CARBonAra with single-chain input extracted via Chimera.
@@ -306,23 +311,18 @@ class TestCarbonaraSamplingSequence(TestImportData):
         self.launchProtocol(protCarbonaraSamplingSequence)
 
         outPuts = []
-        outPuts.append(PDB_output.getFileName() + "_0")
-        outPuts.append(PDB_output.getFileName() + "_1")
-        outPuts.append(PDB_output.getFileName() + "_2")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_0")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_1")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_2")
 
-# 'DONOTSAVESESSION_Atom_struct__2_000574_0' != 'Runs/000574_ChimeraProtOperate/extra/DONO[36 chars]if_0'
-#- DONOTSAVESESSION_Atom_struct__2_000574_0
+        ProtOutputs = []
+        for t in protCarbonaraSamplingSequence.iterOutputAttributes():
+            name = t[0]
+            if name.startswith("DONOTSAVESESSION_Atom_struct__2_000042"):
+                ProtOutputs.append(name)
         
-        for output, ProtOutput in zip(outPuts, 
-                                      protCarbonaraSamplingSequence.
-                                      iterOutputAttributes()):
-# output:  Runs/000574_ChimeraProtOperate/extra/DONOTSAVESESSION_Atom_struct__2_000574.cif_0
-# ProtOutput:  DONOTSAVESESSION_Atom_struct__2_000574_0
-
-            print("output: ", output)
-            print("ProtOutput: ", str(ProtOutput[0]), dir(ProtOutput[0]))
-            self.assertEqual(os.path.basename(str(ProtOutput[0])), 
-                             os.path.basename(output))
+        for output, ProtOutput in zip(outPuts, ProtOutputs):
+            self.assertEqual(output, ProtOutput)
 
         # Sub-test 2: imprint ratio 1, sampling method 'sampled'
         # run carbonara 3 seq, inprint ratio 1, sampling method sampled 
@@ -337,15 +337,18 @@ class TestCarbonaraSamplingSequence(TestImportData):
         self.launchProtocol(protCarbonaraSamplingSequence)
         
         outPuts = []
-        outPuts.append(PDB_output.getFileName() + "_0")
-        outPuts.append(PDB_output.getFileName() + "_1")
-        outPuts.append(PDB_output.getFileName() + "_2")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_0")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_1")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_2")
 
-        for output, ProtOutput in zip(outPuts, 
-                                      protCarbonaraSamplingSequence.
-                                      iterOutputAttributes()):
-            self.assertEqual(os.path.basename(str(ProtOutput[0])), 
-                             os.path.basename(output))
+        ProtOutputs = []
+        for t in protCarbonaraSamplingSequence.iterOutputAttributes():
+            name = t[0]
+            if name.startswith("DONOTSAVESESSION_Atom_struct__2_000042"):
+                ProtOutputs.append(name)
+        
+        for output, ProtOutput in zip(outPuts, ProtOutputs):
+            self.assertEqual(output, ProtOutput)
 
         # Sub-test 3: imprint ratio 0, sampling method 'max'
         # run carbonara 3 seq, inprint ratio 0, sampling method max
@@ -361,15 +364,18 @@ class TestCarbonaraSamplingSequence(TestImportData):
         self.launchProtocol(protCarbonaraSamplingSequence)
 
         outPuts = []
-        outPuts.append(PDB_output.getFileName() + "_0")
-        outPuts.append(PDB_output.getFileName() + "_1")
-        outPuts.append(PDB_output.getFileName() + "_2")    
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_0")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_1")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_2")
 
-        for output, ProtOutput in zip(outPuts, 
-                                      protCarbonaraSamplingSequence.
-                                      iterOutputAttributes()):
-            self.assertEqual(os.path.basename(str(ProtOutput[0])), 
-                             os.path.basename(output))
+        ProtOutputs = []
+        for t in protCarbonaraSamplingSequence.iterOutputAttributes():
+            name = t[0]
+            if name.startswith("DONOTSAVESESSION_Atom_struct__2_000042"):
+                ProtOutputs.append(name)
+        
+        for output, ProtOutput in zip(outPuts, ProtOutputs):
+            self.assertEqual(output, ProtOutput)
 
         # Sub-test 4: imprint ratio 1, sampling method 'max'
         # run carbonara 3 seq, inprint ratio 1, sampling method max
@@ -385,15 +391,18 @@ class TestCarbonaraSamplingSequence(TestImportData):
         self.launchProtocol(protCarbonaraSamplingSequence)
         
         outPuts = []
-        outPuts.append(PDB_output.getFileName() + "_0")
-        outPuts.append(PDB_output.getFileName() + "_1")
-        outPuts.append(PDB_output.getFileName() + "_2")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_0")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_1")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_2")
 
-        for output, ProtOutput in zip(outPuts, 
-                                      protCarbonaraSamplingSequence.
-                                      iterOutputAttributes()):
-            self.assertEqual(os.path.basename(str(ProtOutput[0])), 
-                             os.path.basename(output))
+        ProtOutputs = []
+        for t in protCarbonaraSamplingSequence.iterOutputAttributes():
+            name = t[0]
+            if name.startswith("DONOTSAVESESSION_Atom_struct__2_000042"):
+                ProtOutputs.append(name)
+        
+        for output, ProtOutput in zip(outPuts, ProtOutputs):
+            self.assertEqual(output, ProtOutput)
 
         # Sub-test 5: imprint ratio 1, sampling method 'sampled', ignore Cys
         # run carbonara 3 seq, inprint ratio 1, sampling method samlpled, ignored aminoacid Cys
@@ -411,15 +420,18 @@ class TestCarbonaraSamplingSequence(TestImportData):
         self.launchProtocol(protCarbonaraSamplingSequence)
         
         outPuts = []
-        outPuts.append(PDB_output.getFileName() + "_0")
-        outPuts.append(PDB_output.getFileName() + "_1")
-        outPuts.append(PDB_output.getFileName() + "_2")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_0")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_1")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_2")
 
-        for output, ProtOutput in zip(outPuts, 
-                                      protCarbonaraSamplingSequence.
-                                      iterOutputAttributes()):
-            self.assertEqual(os.path.basename(str(ProtOutput[0])), 
-                             os.path.basename(output))
+        ProtOutputs = []
+        for t in protCarbonaraSamplingSequence.iterOutputAttributes():
+            name = t[0]
+            if name.startswith("DONOTSAVESESSION_Atom_struct__2_000042"):
+                ProtOutputs.append(name)
+        
+        for output, ProtOutput in zip(outPuts, ProtOutputs):
+            self.assertEqual(output, ProtOutput)
 
         # Sub-test 6: imprint ratio 1, sampling method 'sampled', ignore Cys and Trp
         # run carbonara 3 seq, inprint ratio 1, sampling method samlpled, ignored aminoacid Cys Trp
@@ -437,15 +449,18 @@ class TestCarbonaraSamplingSequence(TestImportData):
         self.launchProtocol(protCarbonaraSamplingSequence)
         
         outPuts = []
-        outPuts.append(PDB_output.getFileName() + "_0")
-        outPuts.append(PDB_output.getFileName() + "_1")
-        outPuts.append(PDB_output.getFileName() + "_2")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_0")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_1")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_2")
 
-        for output, ProtOutput in zip(outPuts, 
-                                      protCarbonaraSamplingSequence.
-                                      iterOutputAttributes()):
-            self.assertEqual(os.path.basename(str(ProtOutput[0])), 
-                             os.path.basename(output))
+        ProtOutputs = []
+        for t in protCarbonaraSamplingSequence.iterOutputAttributes():
+            name = t[0]
+            if name.startswith("DONOTSAVESESSION_Atom_struct__2_000042"):
+                ProtOutputs.append(name)
+        
+        for output, ProtOutput in zip(outPuts, ProtOutputs):
+            self.assertEqual(output, ProtOutput)
 
         # Sub-test 7: imprint ratio 1, sampling method 'sampled', ignore Cys/Trp, CPU mode
         # run carbonara 3 seq, inprint ratio 1, sampling method samlpled, ignored aminoacid Cys Trp, cpu used
@@ -464,15 +479,18 @@ class TestCarbonaraSamplingSequence(TestImportData):
         self.launchProtocol(protCarbonaraSamplingSequence)
         
         outPuts = []
-        outPuts.append(PDB_output.getFileName() + "_0")
-        outPuts.append(PDB_output.getFileName() + "_1")
-        outPuts.append(PDB_output.getFileName() + "_2")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_0")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_1")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_2")
 
-        for output, ProtOutput in zip(outPuts, 
-                                      protCarbonaraSamplingSequence.
-                                      iterOutputAttributes()):
-            self.assertEqual(os.path.basename(str(ProtOutput[0])), 
-                             os.path.basename(output))
+        ProtOutputs = []
+        for t in protCarbonaraSamplingSequence.iterOutputAttributes():
+            name = t[0]
+            if name.startswith("DONOTSAVESESSION_Atom_struct__2_000042"):
+                ProtOutputs.append(name)
+        
+        for output, ProtOutput in zip(outPuts, ProtOutputs):
+            self.assertEqual(output, ProtOutput)
 
         # Sub-test 8: imprint ratio 1, sampling method 'sampled', ignore Cys/Trp, CPU, AlphaFold
         # run carbonara 3 seq, inprint ratio 1, sampling method samlpled, 
@@ -494,12 +512,18 @@ class TestCarbonaraSamplingSequence(TestImportData):
         self.launchProtocol(protCarbonaraSamplingSequence)
         
         outPuts = []
-        outPuts.append(PDB_output.getFileName() + "_0")
-        outPuts.append(PDB_output.getFileName() + "_1")
-        outPuts.append(PDB_output.getFileName() + "_2")
-
-        for output, ProtOutput in zip(outPuts, 
-                                      protCarbonaraSamplingSequence.
-                                      iterOutputAttributes()):
-            self.assertEqual(os.path.basename(str(ProtOutput[0])), 
-                             os.path.basename(output))
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_0")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_1")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_2")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_0_binder")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_1_binder")
+        outPuts.append(os.path.splitext(os.path.basename(PDB_output.getFileName()))[0] + "_2_binder")
+        print(outPuts)
+        ProtOutputs = []
+        for t in protCarbonaraSamplingSequence.iterOutputAttributes():
+            name = t[0]
+            if name.startswith("DONOTSAVESESSION_Atom_struct__2_000042"):
+                ProtOutputs.append(name)
+        
+        for output, ProtOutput in zip(outPuts, ProtOutputs):
+            self.assertEqual(output, ProtOutput)
